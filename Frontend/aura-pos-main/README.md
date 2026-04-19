@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# Nordic POS
 
-TODO: Document your project here
+Calm, fast point of sale for modern retail and hospitality.
