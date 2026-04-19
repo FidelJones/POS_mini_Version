@@ -19,11 +19,11 @@ export default function Products() {
   const priceNum = parseFloat(price);
   const priceErr = touched && (!price || isNaN(priceNum) || priceNum < 0) ? "Enter a valid price" : "";
 
-  const submit = () => {
+  const submit = async () => {
     setTouched(true);
     if (!name.trim() || isNaN(priceNum) || priceNum < 0) return;
-    if (editing) updateProduct(editing.id, { name: name.trim(), price: priceNum });
-    else addProduct({ name: name.trim(), price: priceNum });
+    if (editing) await updateProduct(editing.id, { name: name.trim(), price: priceNum });
+    else await addProduct({ name: name.trim(), price: priceNum });
     setOpen(false);
   };
 

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { LayoutDashboard, ShoppingBag, Package, History, Settings, HelpCircle, Moon, Sun, Sparkles } from "lucide-react";
 import { usePOS } from "@/store/pos";
@@ -85,8 +86,13 @@ function AppSidebar() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = usePOS();
+  const initialize = usePOS((state) => state.initialize);
   const { start } = useTutorial();
   const loc = useLocation();
+
+  useEffect(() => {
+    void initialize();
+  }, [initialize]);
 
   return (
     <SidebarProvider>

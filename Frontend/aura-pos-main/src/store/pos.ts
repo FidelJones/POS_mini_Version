@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
+import { toast } from "@/components/ui/use-toast";
 
 export type Product = {
   id: string;
@@ -22,25 +23,22 @@ export type Sale = {
   createdAt: string;
 };
 
-type State = {
-  products: Product[];
-  cart: CartItem[];
-  sales: Sale[];
-  theme: "light" | "dark";
-  tutorialDone: boolean;
-  addProduct: (p: { name: string; price: number }) => void;
-  updateProduct: (id: string, p: { name: string; price: number }) => void;
-  deleteProduct: (id: string) => void;
-  addToCart: (productId: string) => void;
-  setQty: (productId: string, qty: number) => void;
-  removeFromCart: (productId: string) => void;
-  clearCart: () => void;
-  recordSale: () => Sale | null;
-  setTheme: (t: "light" | "dark") => void;
-  setTutorialDone: (v: boolean) => void;
+export type DashboardPoint = {
+  date: string;
+  day: string;
+  revenue: number;
 };
 
-const seed: Product[] = [
+export type DashboardSummary = {
+  today_total: number;
+  sales_count: number;
+  average_sale: number;
+  chart_7d: DashboardPoint[];
+  product_count?: number;
+  top_name?: string;
+};
+
+const defaultProducts: Product[] = [
   { id: "p1", name: "Espresso", price: 3.5, createdAt: new Date().toISOString() },
   { id: "p2", name: "Flat White", price: 4.8, createdAt: new Date().toISOString() },
   { id: "p3", name: "Croissant", price: 3.2, createdAt: new Date().toISOString() },
@@ -51,50 +49,272 @@ const seed: Product[] = [
   { id: "p8", name: "Cold Brew", price: 4.2, createdAt: new Date().toISOString() },
 ];
 
+const API_BASE = "/api";
+const STORE_VERSION = "pos-store-v2";
+
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+const toNumber = (value: unknown) => {
+  if (typeof value === "number") return value;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizeProduct = (raw: any): Product => ({
+  id: String(raw.id),
+  name: String(raw.name ?? ""),
+  price: toNumber(raw.price),
+  createdAt: String(raw.createdAt ?? raw.created_at ?? new Date().toISOString()),
+});
+
+const normalizeSale = (raw: any): Sale => ({
+  id: String(raw.id),
+  items: Array.isArray(raw.items)
+    ? raw.items.map((item: any) => ({
+        productId: String(item.productId ?? item.product_id ?? ""),
+        name: String(item.name ?? ""),
+        price: toNumber(item.price),
+        quantity: toNumber(item.quantity),
+      }))
+    : [],
+  total: toNumber(raw.total),
+  createdAt: String(raw.createdAt ?? raw.created_at ?? new Date().toISOString()),
+});
+
+const normalizeDashboard = (raw: any): DashboardSummary => ({
+  today_total: toNumber(raw.today_total ?? raw.todayRevenue),
+  sales_count: toNumber(raw.sales_count ?? raw.todayCount),
+  average_sale: toNumber(raw.average_sale ?? raw.avgSale),
+  chart_7d: Array.isArray(raw.chart_7d ?? raw.chart)
+    ? (raw.chart_7d ?? raw.chart).map((point: any) => ({
+        date: String(point.date ?? ""),
+        day: String(point.day ?? ""),
+        revenue: toNumber(point.revenue),
+      }))
+    : [],
+  product_count: raw.product_count != null ? toNumber(raw.product_count) : undefined,
+  top_name: raw.top_name ?? raw.topName ?? undefined,
+});
+
+async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    let message = `Request failed (${response.status})`;
+    try {
+      const payload = await response.json();
+      message = payload.detail || payload.message || JSON.stringify(payload);
+    } catch {
+      const text = await response.text();
+      if (text) message = text;
+    }
+    throw new Error(message);
+  }
+
+  if (response.status === 204) return undefined as T;
+  return (await response.json()) as T;
+}
+
+type State = {
+  products: Product[];
+  cart: CartItem[];
+  sales: Sale[];
+  dashboard: DashboardSummary | null;
+  theme: "light" | "dark";
+  tutorialDone: boolean;
+  isLoading: boolean;
+  error: string | null;
+  initialize: () => Promise<void>;
+  refreshDashboard: () => Promise<void>;
+  addProduct: (p: { name: string; price: number }) => Promise<Product | null>;
+  updateProduct: (id: string, p: { name: string; price: number }) => Promise<Product | null>;
+  deleteProduct: (id: string) => Promise<void>;
+  addToCart: (productId: string) => void;
+  setQty: (productId: string, qty: number) => void;
+  removeFromCart: (productId: string) => void;
+  clearCart: () => void;
+  recordSale: () => Promise<Sale | null>;
+  setTheme: (t: "light" | "dark") => void;
+  setTutorialDone: (v: boolean) => void;
+};
+
+async function seedProductsIfNeeded() {
+  const current = await requestJson<any[]>("/products/");
+  if (current.length > 0) return current;
+
+  await Promise.all(
+    defaultProducts.map((product) =>
+      requestJson("/products/", {
+        method: "POST",
+        body: JSON.stringify({ name: product.name, price: product.price }),
+      })
+    )
+  );
+
+  return requestJson<any[]>("/products/");
+}
 
 export const usePOS = create<State>()(
   persist(
     (set, get) => ({
-      products: seed,
+      products: defaultProducts,
       cart: [],
       sales: [],
+      dashboard: null,
       theme: "light",
       tutorialDone: false,
-      addProduct: ({ name, price }) =>
-        set((s) => ({ products: [{ id: uid(), name, price, createdAt: new Date().toISOString() }, ...s.products] })),
-      updateProduct: (id, { name, price }) =>
-        set((s) => ({ products: s.products.map((p) => (p.id === id ? { ...p, name, price } : p)) })),
-      deleteProduct: (id) =>
-        set((s) => ({ products: s.products.filter((p) => p.id !== id), cart: s.cart.filter((c) => c.productId !== id) })),
+      isLoading: false,
+      error: null,
+      initialize: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const [products, sales, dashboard] = await Promise.all([
+            seedProductsIfNeeded(),
+            requestJson<any[]>("/sales/"),
+            requestJson<any>("/dashboard/"),
+          ]);
+
+          set({
+            products: products.map(normalizeProduct),
+            sales: sales.map(normalizeSale),
+            dashboard: normalizeDashboard(dashboard),
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to load backend data.";
+          set({ error: message });
+          toast({
+            title: "Could not load data",
+            description: message,
+            variant: "destructive",
+          });
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+      refreshDashboard: async () => {
+        try {
+          const dashboard = await requestJson<any>("/dashboard/");
+          set({ dashboard: normalizeDashboard(dashboard) });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to refresh dashboard.";
+          set({ error: message });
+        }
+      },
+      addProduct: async ({ name, price }) => {
+        try {
+          const product = normalizeProduct(
+            await requestJson("/products/", {
+              method: "POST",
+              body: JSON.stringify({ name, price }),
+            })
+          );
+
+          set((state) => ({ products: [product, ...state.products], error: null }));
+          void get().refreshDashboard();
+          return product;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to add product.";
+          set({ error: message });
+          toast({ title: "Add product failed", description: message, variant: "destructive" });
+          return null;
+        }
+      },
+      updateProduct: async (id, { name, price }) => {
+        try {
+          const product = normalizeProduct(
+            await requestJson(`/products/${id}/`, {
+              method: "PUT",
+              body: JSON.stringify({ name, price }),
+            })
+          );
+
+          set((state) => ({
+            products: state.products.map((item) => (item.id === id ? product : item)),
+            error: null,
+          }));
+          void get().refreshDashboard();
+          return product;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to update product.";
+          set({ error: message });
+          toast({ title: "Update product failed", description: message, variant: "destructive" });
+          return null;
+        }
+      },
+      deleteProduct: async (id) => {
+        const previous = get().products;
+        set((state) => ({
+          products: state.products.filter((product) => product.id !== id),
+          cart: state.cart.filter((item) => item.productId !== id),
+          error: null,
+        }));
+
+        try {
+          await requestJson(`/products/${id}/`, { method: "DELETE" });
+          void get().refreshDashboard();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to delete product.";
+          set({ products: previous, error: message });
+          toast({ title: "Delete product failed", description: message, variant: "destructive" });
+        }
+      },
       addToCart: (productId) => {
-        const product = get().products.find((p) => p.id === productId);
+        const product = get().products.find((item) => item.id === productId);
         if (!product) return;
-        set((s) => {
-          const existing = s.cart.find((c) => c.productId === productId);
+
+        set((state) => {
+          const existing = state.cart.find((item) => item.productId === productId);
           if (existing) {
-            return { cart: s.cart.map((c) => (c.productId === productId ? { ...c, quantity: c.quantity + 1 } : c)) };
+            return {
+              cart: state.cart.map((item) =>
+                item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item
+              ),
+            };
           }
-          return { cart: [...s.cart, { productId, name: product.name, price: product.price, quantity: 1 }] };
+
+          return {
+            cart: [...state.cart, { productId, name: product.name, price: product.price, quantity: 1 }],
+          };
         });
       },
       setQty: (productId, qty) =>
-        set((s) => ({
-          cart: qty <= 0 ? s.cart.filter((c) => c.productId !== productId) : s.cart.map((c) => (c.productId === productId ? { ...c, quantity: qty } : c)),
+        set((state) => ({
+          cart:
+            qty <= 0
+              ? state.cart.filter((item) => item.productId !== productId)
+              : state.cart.map((item) => (item.productId === productId ? { ...item, quantity: qty } : item)),
         })),
-      removeFromCart: (productId) => set((s) => ({ cart: s.cart.filter((c) => c.productId !== productId) })),
+      removeFromCart: (productId) => set((state) => ({ cart: state.cart.filter((item) => item.productId !== productId) })),
       clearCart: () => set({ cart: [] }),
-      recordSale: () => {
+      recordSale: async () => {
         const { cart } = get();
         if (cart.length === 0) return null;
-        const sale: Sale = {
-          id: uid(),
-          items: cart.map((c) => ({ productId: c.productId, name: c.name, price: c.price, quantity: c.quantity })),
-          total: cart.reduce((sum, c) => sum + c.price * c.quantity, 0),
-          createdAt: new Date().toISOString(),
-        };
-        set((s) => ({ sales: [sale, ...s.sales], cart: [] }));
-        return sale;
+
+        try {
+          const sale = normalizeSale(
+            await requestJson("/sales/", {
+              method: "POST",
+              body: JSON.stringify({
+                items: cart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+              }),
+            })
+          );
+
+          set((state) => ({ sales: [sale, ...state.sales], cart: [], error: null }));
+          void get().refreshDashboard();
+          return sale;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to record sale.";
+          set({ error: message });
+          toast({ title: "Record sale failed", description: message, variant: "destructive" });
+          return null;
+        }
       },
       setTheme: (theme) => {
         set({ theme });
@@ -105,7 +325,9 @@ export const usePOS = create<State>()(
       setTutorialDone: (v) => set({ tutorialDone: v }),
     }),
     {
-      name: "pos-store-v1",
+      name: STORE_VERSION,
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ theme: state.theme, tutorialDone: state.tutorialDone }),
       onRehydrateStorage: () => (state) => {
         if (state?.theme === "dark") document.documentElement.classList.add("dark");
       },

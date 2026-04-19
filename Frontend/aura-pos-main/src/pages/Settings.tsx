@@ -4,7 +4,7 @@ import { useTutorial } from "@/components/pos/TutorialProvider";
 import { Moon, Sun, RotateCcw, HelpCircle } from "lucide-react";
 
 export default function Settings() {
-  const { theme, setTheme, sales, products } = usePOS();
+  const { theme, setTheme } = usePOS();
   const { start } = useTutorial();
 
   return (
@@ -28,13 +28,13 @@ export default function Settings() {
           <Button variant="outline" onClick={start} className="rounded-[10px] gap-2"><HelpCircle size={16} /> Replay tour</Button>
         </Row>
 
-        <Row label="Reset data" hint={`${products.length} products · ${sales.length} sales recorded`}>
+        <Row label="Reset local settings" hint="Theme and tutorial progress are stored in your browser.">
           <Button
             variant="outline"
             className="rounded-[10px] gap-2 text-destructive hover:text-destructive"
             onClick={() => {
-              if (confirm("Erase all data and start fresh?")) {
-                localStorage.removeItem("pos-store-v1");
+              if (confirm("Reset local settings and reload the backend data?")) {
+                localStorage.removeItem("pos-store-v2");
                 location.reload();
               }
             }}

@@ -1,15 +1,21 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { usePOS, formatCurrency } from "@/store/pos";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { TrendingUp, ShoppingBag, Package, Crown } from "lucide-react";
 
 export default function Dashboard() {
-  const { sales, products } = usePOS();
+  const { sales, products, dashboard, refreshDashboard, isLoading } = usePOS();
+
+  useEffect(() => {
+    if (!dashboard && !isLoading) {
+      void refreshDashboard();
+    }
+  }, [dashboard, isLoading, refreshDashboard]);
 
   const data = useMemo(() => {
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const todaySales = sales.filter((s) => new Date(s.createdAt) >= todayStart);
-    const todayRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
+    const todayRevenue = dashboard?.today_total ?? 0;
+    const todayCount = dashboard?.sales_count ?? 0;
+    const averageSale = dashboard?.average_sale ?? 0;
 
     // Most sold
     const counts: Record<string, { name: string; qty: number }> = {};
@@ -19,26 +25,16 @@ export default function Dashboard() {
     }));
     const top = Object.values(counts).sort((a, b) => b.qty - a.qty)[0];
 
-    // 7-day chart
-    const days: { day: string; revenue: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
-      const next = new Date(d); next.setDate(d.getDate() + 1);
-      const rev = sales
-        .filter((s) => { const t = new Date(s.createdAt); return t >= d && t < next; })
-        .reduce((sum, s) => sum + s.total, 0);
-      days.push({ day: d.toLocaleDateString(undefined, { weekday: "short" }), revenue: Math.round(rev * 100) / 100 });
-    }
-
     return {
       todayRevenue,
-      todayCount: todaySales.length,
+      todayCount,
       productCount: products.length,
       topName: top?.name ?? "—",
-      chart: days,
+      averageSale,
+      chart: dashboard?.chart_7d ?? [],
       recent: sales.slice(0, 5),
     };
-  }, [sales, products]);
+  }, [dashboard, sales, products]);
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
@@ -53,6 +49,10 @@ export default function Dashboard() {
         <Metric icon={Package} label="Products" value={String(data.productCount)} />
         <Metric icon={Crown} label="Top Seller" value={data.topName} small />
       </div>
+
+      {isLoading && !dashboard && (
+        <div className="mb-4 text-sm text-muted-foreground">Loading live data from the backend...</div>
+      )}
 
       <div className="card-soft p-5 md:p-6 mb-6">
         <h2 className="font-display font-semibold text-[15px] mb-4">Last 7 days</h2>

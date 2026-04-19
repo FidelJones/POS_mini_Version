@@ -9,8 +9,8 @@ export function Cart({ onAfterRecord }: { onAfterRecord?: () => void }) {
   const [success, setSuccess] = useState(false);
   const subtotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
 
-  const handleRecord = () => {
-    const sale = recordSale();
+  const handleRecord = async () => {
+    const sale = await recordSale();
     if (!sale) return;
     setSuccess(true);
     setTimeout(() => {

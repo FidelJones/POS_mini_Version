@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePOS, formatCurrency } from "@/store/pos";
 import { History } from "lucide-react";
 
@@ -20,18 +20,23 @@ function startOf(filter: Filter): number {
 }
 
 export default function Sales() {
-  const { sales } = usePOS();
+  const { sales, dashboard, refreshDashboard, isLoading } = usePOS();
   const [filter, setFilter] = useState<Filter>("today");
+
+  useEffect(() => {
+    if (!dashboard && !isLoading) {
+      void refreshDashboard();
+    }
+  }, [dashboard, isLoading, refreshDashboard]);
 
   const filtered = useMemo(() => {
     const cutoff = startOf(filter);
     return sales.filter((s) => new Date(s.createdAt).getTime() >= cutoff);
   }, [sales, filter]);
 
-  const todayStart = startOf("today");
-  const todaySales = sales.filter((s) => new Date(s.createdAt).getTime() >= todayStart);
-  const todayRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
-  const avgSale = todaySales.length ? todayRevenue / todaySales.length : 0;
+  const todayRevenue = dashboard?.today_total ?? 0;
+  const todaySalesCount = dashboard?.sales_count ?? 0;
+  const avgSale = dashboard?.average_sale ?? 0;
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
@@ -42,7 +47,7 @@ export default function Sales() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-6">
         <Metric label="Today's Revenue" value={formatCurrency(todayRevenue)} />
-        <Metric label="Sales Today" value={String(todaySales.length)} />
+        <Metric label="Sales Today" value={String(todaySalesCount)} />
         <Metric label="Average Sale" value={formatCurrency(avgSale)} />
       </div>
 
