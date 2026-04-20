@@ -77,6 +77,7 @@ export default function Sales() {
             <thead>
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border/60">
                 <th className="px-5 py-3 font-medium">Sale</th>
+                <th className="px-5 py-3 font-medium">Customer</th>
                 <th className="px-5 py-3 font-medium">Items</th>
                 <th className="px-5 py-3 font-medium">Total</th>
                 <th className="px-5 py-3 font-medium hidden md:table-cell">When</th>
@@ -86,6 +87,10 @@ export default function Sales() {
               {filtered.map((s) => (
                 <tr key={s.id} className="border-b border-border/40 last:border-0 hover:bg-muted/30 transition">
                   <td className="px-5 py-4 font-mono text-xs text-muted-foreground">#{s.id.slice(0, 6)}</td>
+                  <td className="px-5 py-4 text-sm">
+                    <div className="font-medium">{s.customerName || "—"}</div>
+                    {s.notes && <div className="text-xs text-muted-foreground italic truncate max-w-xs">{s.notes}</div>}
+                  </td>
                   <td className="px-5 py-4 text-sm">
                     {s.items.map((i) => `${i.quantity}× ${i.name}`).join(", ")}
                   </td>

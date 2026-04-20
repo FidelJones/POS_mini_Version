@@ -48,6 +48,13 @@ export default function POS() {
                   className="card-soft p-5 text-left hover:border-primary/40 transition-all group min-h-[140px] flex flex-col justify-between"
                 >
                   <div>
+                    {(p.imageUrl || p.image) && (
+                      <img
+                        src={p.imageUrl ?? p.image ?? ""}
+                        alt={p.name}
+                        className="w-full h-24 rounded-[12px] object-cover mb-3"
+                      />
+                    )}
                     <h3 className="font-display font-semibold text-[15px] leading-snug mb-1">{p.name}</h3>
                     <div className="font-display font-bold text-2xl tabular-nums mt-3">{formatCurrency(p.price)}</div>
                   </div>

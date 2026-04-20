@@ -6,6 +6,8 @@ export type Product = {
   id: string;
   name: string;
   price: number;
+  image?: string | null;
+  imageUrl?: string | null;
   createdAt: string;
 };
 
@@ -20,6 +22,8 @@ export type Sale = {
   id: string;
   items: { productId: string; name: string; price: number; quantity: number }[];
   total: number;
+  customerName?: string;
+  notes?: string;
   createdAt: string;
 };
 
@@ -64,6 +68,8 @@ const normalizeProduct = (raw: any): Product => ({
   id: String(raw.id),
   name: String(raw.name ?? ""),
   price: toNumber(raw.price),
+  image: raw.image ?? null,
+  imageUrl: raw.imageUrl ?? raw.image_url ?? raw.image ?? null,
   createdAt: String(raw.createdAt ?? raw.created_at ?? new Date().toISOString()),
 });
 
@@ -78,6 +84,8 @@ const normalizeSale = (raw: any): Sale => ({
       }))
     : [],
   total: toNumber(raw.total),
+  customerName: raw.customerName ?? raw.customer_name ?? undefined,
+  notes: raw.notes ?? undefined,
   createdAt: String(raw.createdAt ?? raw.created_at ?? new Date().toISOString()),
 });
 
@@ -97,10 +105,11 @@ const normalizeDashboard = (raw: any): DashboardSummary => ({
 });
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const hasFormDataBody = typeof FormData !== "undefined" && init?.body instanceof FormData;
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(hasFormDataBody ? {} : { "Content-Type": "application/json" }),
       ...(init?.headers ?? {}),
     },
   });
@@ -130,15 +139,22 @@ type State = {
   tutorialDone: boolean;
   isLoading: boolean;
   error: string | null;
+  cartCustomerName: string;
+  cartNotes: string;
   initialize: () => Promise<void>;
   refreshDashboard: () => Promise<void>;
-  addProduct: (p: { name: string; price: number }) => Promise<Product | null>;
-  updateProduct: (id: string, p: { name: string; price: number }) => Promise<Product | null>;
+  addProduct: (p: { name: string; price: number; imageFile?: File | null }) => Promise<Product | null>;
+  updateProduct: (
+    id: string,
+    p: { name: string; price: number; imageFile?: File | null; removeImage?: boolean }
+  ) => Promise<Product | null>;
   deleteProduct: (id: string) => Promise<void>;
   addToCart: (productId: string) => void;
   setQty: (productId: string, qty: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
+  setCartCustomerName: (name: string) => void;
+  setCartNotes: (notes: string) => void;
   recordSale: () => Promise<Sale | null>;
   setTheme: (t: "light" | "dark") => void;
   setTutorialDone: (v: boolean) => void;
@@ -171,6 +187,8 @@ export const usePOS = create<State>()(
       tutorialDone: false,
       isLoading: false,
       error: null,
+      cartCustomerName: "",
+      cartNotes: "",
       initialize: async () => {
         set({ isLoading: true, error: null });
         try {
@@ -206,12 +224,19 @@ export const usePOS = create<State>()(
           set({ error: message });
         }
       },
-      addProduct: async ({ name, price }) => {
+      addProduct: async ({ name, price, imageFile }) => {
         try {
+          const body = new FormData();
+          body.append("name", name);
+          body.append("price", String(price));
+          if (imageFile) {
+            body.append("image", imageFile);
+          }
+
           const product = normalizeProduct(
             await requestJson("/products/", {
               method: "POST",
-              body: JSON.stringify({ name, price }),
+              body,
             })
           );
 
@@ -225,12 +250,21 @@ export const usePOS = create<State>()(
           return null;
         }
       },
-      updateProduct: async (id, { name, price }) => {
+      updateProduct: async (id, { name, price, imageFile, removeImage }) => {
         try {
+          const body = new FormData();
+          body.append("name", name);
+          body.append("price", String(price));
+          if (imageFile) {
+            body.append("image", imageFile);
+          } else if (removeImage) {
+            body.append("image", "");
+          }
+
           const product = normalizeProduct(
             await requestJson(`/products/${id}/`, {
-              method: "PUT",
-              body: JSON.stringify({ name, price }),
+              method: "PATCH",
+              body,
             })
           );
 
@@ -291,9 +325,11 @@ export const usePOS = create<State>()(
               : state.cart.map((item) => (item.productId === productId ? { ...item, quantity: qty } : item)),
         })),
       removeFromCart: (productId) => set((state) => ({ cart: state.cart.filter((item) => item.productId !== productId) })),
-      clearCart: () => set({ cart: [] }),
+      clearCart: () => set({ cart: [], cartCustomerName: "", cartNotes: "" }),
+      setCartCustomerName: (name) => set({ cartCustomerName: name }),
+      setCartNotes: (notes) => set({ cartNotes: notes }),
       recordSale: async () => {
-        const { cart } = get();
+        const { cart, cartCustomerName, cartNotes } = get();
         if (cart.length === 0) return null;
 
         try {
@@ -302,11 +338,13 @@ export const usePOS = create<State>()(
               method: "POST",
               body: JSON.stringify({
                 items: cart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+                customer_name: cartCustomerName,
+                notes: cartNotes,
               }),
             })
           );
 
-          set((state) => ({ sales: [sale, ...state.sales], cart: [], error: null }));
+          set((state) => ({ sales: [sale, ...state.sales], cart: [], cartCustomerName: "", cartNotes: "", error: null }));
           void get().refreshDashboard();
           return sale;
         } catch (error) {

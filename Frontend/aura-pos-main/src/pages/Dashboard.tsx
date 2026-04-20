@@ -83,6 +83,8 @@ export default function Dashboard() {
               <li key={s.id} className="py-3 flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <div className="text-sm font-medium truncate">{s.items.map((i) => `${i.quantity}× ${i.name}`).join(", ")}</div>
+                  {s.customerName && <div className="text-xs text-primary font-medium mt-1">{s.customerName}</div>}
+                  {s.notes && <div className="text-xs text-muted-foreground mt-1 truncate italic">{s.notes}</div>}
                   <div className="text-xs text-muted-foreground">{new Date(s.createdAt).toLocaleString()}</div>
                 </div>
                 <div className="font-display font-semibold tabular-nums">{formatCurrency(s.total)}</div>

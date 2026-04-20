@@ -6,6 +6,7 @@ class Product(models.Model):
 	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 	name = models.CharField(max_length=200)
 	price = models.DecimalField(max_digits=10, decimal_places=2)
+	image = models.ImageField(upload_to='products/', blank=True, null=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:
@@ -18,6 +19,8 @@ class Product(models.Model):
 class Sale(models.Model):
 	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 	total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+	customer_name = models.CharField(max_length=255, blank=True, default='')
+	notes = models.TextField(blank=True, default='')
 	created_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:

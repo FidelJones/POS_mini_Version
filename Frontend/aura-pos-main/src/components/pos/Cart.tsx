@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 export function Cart({ onAfterRecord }: { onAfterRecord?: () => void }) {
-  const { cart, setQty, removeFromCart, recordSale } = usePOS();
+  const { cart, setQty, removeFromCart, recordSale, cartCustomerName, setCartCustomerName, cartNotes, setCartNotes } = usePOS();
   const [success, setSuccess] = useState(false);
   const subtotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
 
@@ -28,7 +28,34 @@ export function Cart({ onAfterRecord }: { onAfterRecord?: () => void }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3" data-tour="cart">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3" data-tour="cart">
+        {/* Order Details Section */}
+        <div className="rounded-[12px] border border-border/60 bg-background p-3 space-y-2.5">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase">Order Details</h3>
+          
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-1.5">Customer's name</label>
+            <input
+              type="text"
+              placeholder="Select"
+              value={cartCustomerName}
+              onChange={(e) => setCartCustomerName(e.target.value)}
+              className="w-full px-3 h-9 rounded-[8px] border border-border/60 bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-1.5">Note</label>
+            <textarea
+              placeholder="Special requests or notes..."
+              value={cartNotes}
+              onChange={(e) => setCartNotes(e.target.value)}
+              className="w-full px-3 py-2 rounded-[8px] border border-border/60 bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none h-[70px]"
+            />
+          </div>
+        </div>
+
+        {/* Items Section */}
         {cart.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-6">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -39,6 +66,10 @@ export function Cart({ onAfterRecord }: { onAfterRecord?: () => void }) {
           </div>
         ) : (
           <ul className="space-y-2">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase">Items</h3>
+              <button onClick={() => { setCartCustomerName(""); setCartNotes(""); }} className="text-xs text-primary hover:text-primary/80">Clear</button>
+            </div>
             <AnimatePresence initial={false}>
               {cart.map((item, idx) => (
                 <motion.li
