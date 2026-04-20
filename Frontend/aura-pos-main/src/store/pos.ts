@@ -374,4 +374,9 @@ export const usePOS = create<State>()(
 );
 
 export const formatCurrency = (n: number) =>
-  new Intl.NumberFormat("en-EU", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(n);
+  new Intl.NumberFormat("en-UG", {
+    style: "currency",
+    currency: "UGX",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(n);

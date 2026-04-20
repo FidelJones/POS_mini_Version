@@ -181,14 +181,14 @@ export default function Products() {
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Price</label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">EUR</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">UGX</span>
                       <input
                         type="number"
-                        step="0.01"
+                        step="1"
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
                         className={`input-pos w-full pl-14 ${priceErr ? "border-destructive/50" : ""}`}
-                        placeholder="0.00"
+                        placeholder="0"
                       />
                     </div>
                     {priceErr && <p className="text-xs text-destructive mt-1.5">{priceErr}</p>}
