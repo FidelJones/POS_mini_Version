@@ -48,7 +48,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
         <Metric icon={TrendingUp} label="Today's Revenue" value={formatCurrency(data.todayRevenue)} />
         <Metric icon={ShoppingBag} label="Sales Today" value={String(data.todayCount)} />
         <Metric icon={Package} label="Products" value={String(data.productCount)} />
