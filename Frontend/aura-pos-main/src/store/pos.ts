@@ -137,6 +137,8 @@ type State = {
   dashboard: DashboardSummary | null;
   theme: "light" | "dark";
   tutorialDone: boolean;
+  isAuthenticated: boolean;
+  signedInAs: string | null;
   isLoading: boolean;
   error: string | null;
   cartCustomerName: string;
@@ -158,6 +160,8 @@ type State = {
   recordSale: () => Promise<Sale | null>;
   setTheme: (t: "light" | "dark") => void;
   setTutorialDone: (v: boolean) => void;
+  signIn: (email: string) => void;
+  signOut: () => void;
 };
 
 async function seedProductsIfNeeded() {
@@ -185,6 +189,8 @@ export const usePOS = create<State>()(
       dashboard: null,
       theme: "light",
       tutorialDone: false,
+      isAuthenticated: false,
+      signedInAs: null,
       isLoading: false,
       error: null,
       cartCustomerName: "",
@@ -361,11 +367,30 @@ export const usePOS = create<State>()(
         }
       },
       setTutorialDone: (v) => set({ tutorialDone: v }),
+      signIn: (email) =>
+        set({
+          isAuthenticated: true,
+          signedInAs: email.trim() || "Admin",
+          error: null,
+        }),
+      signOut: () =>
+        set({
+          isAuthenticated: false,
+          signedInAs: null,
+          cart: [],
+          cartCustomerName: "",
+          cartNotes: "",
+        }),
     }),
     {
       name: STORE_VERSION,
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ theme: state.theme, tutorialDone: state.tutorialDone }),
+      partialize: (state) => ({
+        theme: state.theme,
+        tutorialDone: state.tutorialDone,
+        isAuthenticated: state.isAuthenticated,
+        signedInAs: state.signedInAs,
+      }),
       onRehydrateStorage: () => (state) => {
         if (state?.theme === "dark") document.documentElement.classList.add("dark");
       },

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, History, Settings, HelpCircle, Moon, Sun, Sparkles } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, History, Settings, HelpCircle, Moon, Sun, Sparkles, LogOut, ShieldCheck } from "lucide-react";
 import { usePOS } from "@/store/pos";
 import { Button } from "@/components/ui/button";
 import { useTutorial } from "@/components/pos/TutorialProvider";
@@ -18,15 +18,15 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItems = [
-  { to: "/", label: "POS", icon: ShoppingBag, end: true },
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/pos", label: "POS", icon: ShoppingBag },
   { to: "/products", label: "Products", icon: Package },
   { to: "/sales", label: "Sales History", icon: History },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 function AppSidebar() {
-  const { theme, setTheme } = usePOS();
+  const { theme, setTheme, signedInAs, signOut } = usePOS();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
@@ -42,7 +42,7 @@ function AppSidebar() {
         {!collapsed && (
           <div className="min-w-0">
             <div className="font-display font-bold text-[15px] leading-tight truncate">Jambo POS</div>
-            <div className="text-[11px] text-muted-foreground">v1.0</div>
+            <div className="text-[11px] text-muted-foreground">Admin console · {signedInAs ?? "secured"}</div>
           </div>
         )}
       </SidebarHeader>
@@ -79,13 +79,21 @@ function AppSidebar() {
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           {!collapsed && <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>}
         </Button>
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 h-10 rounded-[10px] mt-1"
+          onClick={signOut}
+        >
+          <LogOut size={18} />
+          {!collapsed && <span>Sign out</span>}
+        </Button>
       </SidebarFooter>
     </Sidebar>
   );
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { theme, setTheme } = usePOS();
+  const { theme, setTheme, signedInAs, signOut } = usePOS();
   const initialize = usePOS((state) => state.initialize);
   const { start } = useTutorial();
   const loc = useLocation();
@@ -114,7 +122,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 >
                   <Sparkles className="w-4 h-4 text-primary-foreground" />
                 </div>
-                <span className="font-display font-bold">Jambo POS</span>
+                <div className="flex flex-col leading-tight">
+                  <span className="font-display font-bold">Jambo POS</span>
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <ShieldCheck size={11} /> {signedInAs ?? "admin access"}
+                  </span>
+                </div>
               </div>
               <div className="hidden md:block ml-2">
                 <h1 className="font-display font-semibold text-[17px] capitalize">
@@ -134,6 +147,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Button variant="outline" size="sm" onClick={start} className="rounded-[10px] gap-1.5" data-tour="help">
                 <HelpCircle size={16} />
                 <span className="hidden sm:inline">Tour</span>
+              </Button>
+              <Button variant="ghost" size="icon" className="rounded-[10px]" onClick={signOut} title="Sign out">
+                <LogOut size={16} />
               </Button>
             </div>
           </header>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { usePOS, formatCurrency } from "@/store/pos";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
-import { TrendingUp, ShoppingBag, Package, Crown } from "lucide-react";
+import { TrendingUp, ShoppingBag, Package, Crown, ShieldCheck } from "lucide-react";
 
 export default function Dashboard() {
   const { sales, products, dashboard, refreshDashboard, isLoading } = usePOS();
@@ -38,9 +38,14 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
-      <div className="mb-6">
-        <h1 className="font-display font-bold text-2xl md:text-3xl">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">A calm overview of your day.</p>
+      <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="font-display font-bold text-2xl md:text-3xl">Admin dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">A clear read on revenue, throughput, and live store health.</p>
+        </div>
+        <div className="inline-flex items-center gap-2 self-start rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-xs font-semibold text-primary">
+          <ShieldCheck className="h-3.5 w-3.5" /> Secured admin session
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
