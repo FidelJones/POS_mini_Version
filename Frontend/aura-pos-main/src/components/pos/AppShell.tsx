@@ -41,7 +41,7 @@ function AppSidebar() {
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <div className="font-display font-bold text-[15px] leading-tight truncate">Nordic POS</div>
+            <div className="font-display font-bold text-[15px] leading-tight truncate">Jambo POS</div>
             <div className="text-[11px] text-muted-foreground">v1.0</div>
           </div>
         )}
@@ -114,7 +114,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 >
                   <Sparkles className="w-4 h-4 text-primary-foreground" />
                 </div>
-                <span className="font-display font-bold">Nordic POS</span>
+                <span className="font-display font-bold">Jambo POS</span>
               </div>
               <div className="hidden md:block ml-2">
                 <h1 className="font-display font-semibold text-[17px] capitalize">

@@ -8,3 +8,4 @@ urlpatterns = [
     path('sales/', SaleListCreateAPIView.as_view(), name='sales-list-create'),
     path('dashboard/', DashboardAPIView.as_view(), name='dashboard'),
 ]
+

@@ -187,7 +187,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
               </div>
               <h3 className="font-display font-bold text-2xl mb-2">You're ready!</h3>
               <p className="text-sm text-muted-foreground mb-5">Make your first sale in seconds. You can revisit the tour anytime.</p>
-              <Button onClick={finish} className="btn-accent h-10 px-6">Start using Nordic POS</Button>
+              <Button onClick={finish} className="btn-accent h-10 px-6">Start using Jambo POS</Button>
             </div>
           </motion.div>
         )}
