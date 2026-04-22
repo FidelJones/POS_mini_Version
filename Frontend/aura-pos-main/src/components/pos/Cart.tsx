@@ -5,13 +5,29 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 export function Cart({ onAfterRecord }: { onAfterRecord?: () => void }) {
-  const { cart, setQty, removeFromCart, recordSale, cartCustomerName, setCartCustomerName, cartNotes, setCartNotes } = usePOS();
+  const {
+    cart,
+    setQty,
+    removeFromCart,
+    recordSale,
+    cartCustomerName,
+    setCartCustomerName,
+    cartNotes,
+    setCartNotes,
+    nextCustomerSerial,
+    advanceCustomerSerial,
+  } = usePOS();
   const [success, setSuccess] = useState(false);
   const subtotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
+  const tax = 0;
+  const discount = 0;
+  const total = subtotal;
+  const customerId = `js${String(nextCustomerSerial).padStart(6, "0")}`;
 
   const handleRecord = async () => {
     const sale = await recordSale();
     if (!sale) return;
+    advanceCustomerSerial();
     setSuccess(true);
     setTimeout(() => {
       setSuccess(false);
@@ -29,30 +45,24 @@ export function Cart({ onAfterRecord }: { onAfterRecord?: () => void }) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3" data-tour="cart">
-        {/* Order Details Section */}
-        <div className="rounded-[12px] border border-border/60 bg-background p-3 space-y-2.5">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase">Order Details</h3>
-          
-          <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1.5">Customer's name</label>
-            <input
-              type="text"
-              placeholder="Select"
-              value={cartCustomerName}
-              onChange={(e) => setCartCustomerName(e.target.value)}
-              className="w-full px-3 h-9 rounded-[8px] border border-border/60 bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
+        {/* Recipient */}
+        <div className="rounded-[12px] border border-border/60 bg-background p-3">
+          <label className="text-xs font-medium text-muted-foreground block mb-1.5">Recipient</label>
+          <input
+            type="text"
+            placeholder="Customer name"
+            value={cartCustomerName}
+            onChange={(e) => setCartCustomerName(e.target.value)}
+            className="w-full px-3 h-9 rounded-[8px] border border-border/60 bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          />
 
-          <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1.5">Note</label>
-            <textarea
-              placeholder="Special requests or notes..."
-              value={cartNotes}
-              onChange={(e) => setCartNotes(e.target.value)}
-              className="w-full px-3 py-2 rounded-[8px] border border-border/60 bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none h-[70px]"
-            />
-          </div>
+          <label className="text-xs font-medium text-muted-foreground block mt-3 mb-1.5">Note</label>
+          <textarea
+            placeholder="Special requests or notes..."
+            value={cartNotes}
+            onChange={(e) => setCartNotes(e.target.value)}
+            className="w-full px-3 py-2 rounded-[8px] border border-border/60 bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none h-[74px]"
+          />
         </div>
 
         {/* Items Section */}
@@ -68,7 +78,15 @@ export function Cart({ onAfterRecord }: { onAfterRecord?: () => void }) {
           <ul className="space-y-2">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase">Items</h3>
-              <button onClick={() => { setCartCustomerName(""); setCartNotes(""); }} className="text-xs text-primary hover:text-primary/80">Clear</button>
+              <button
+                onClick={() => {
+                  setCartCustomerName("");
+                  setCartNotes("");
+                }}
+                className="text-xs text-primary hover:text-primary/80"
+              >
+                Clear
+              </button>
             </div>
             <AnimatePresence initial={false}>
               {cart.map((item, idx) => (
@@ -120,30 +138,71 @@ export function Cart({ onAfterRecord }: { onAfterRecord?: () => void }) {
       </div>
 
       <div className="p-4 border-t border-border/60 space-y-3 bg-card">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Subtotal</span>
-          <motion.span key={subtotal} initial={{ y: -4, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="font-display font-bold text-2xl tabular-nums">
-            {formatCurrency(subtotal)}
-          </motion.span>
+        <div className="rounded-[14px] border border-border/60 bg-background p-3.5 space-y-2.5">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Recipient</span>
+            <span className="font-medium text-right ml-3 truncate max-w-[60%]">{cartCustomerName || "Walk-in"}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Customer ID</span>
+            <span className="font-semibold tracking-wide">{customerId}</span>
+          </div>
+
+          <div className="h-px bg-border/60 my-1" />
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Subtotal</span>
+            <span className="font-semibold tabular-nums">{formatCurrency(subtotal)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Tax</span>
+            <span className="font-semibold tabular-nums">{formatCurrency(tax)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Discount</span>
+            <span className="font-semibold tabular-nums">{formatCurrency(discount)}</span>
+          </div>
+
+          <div className="h-px bg-border/60 my-1" />
+
+          <div className="flex items-center justify-between">
+            <span className="font-display font-semibold text-[17px]">Total</span>
+            <motion.span key={total} initial={{ y: -4, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="font-display font-bold text-2xl tabular-nums">
+              {formatCurrency(total)}
+            </motion.span>
+          </div>
         </div>
-        <Button
-          data-tour="record"
-          onClick={handleRecord}
-          disabled={cart.length === 0 || success}
-          className="btn-accent w-full h-12 text-[15px] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <AnimatePresence mode="wait">
-            {success ? (
-              <motion.span key="ok" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
-                <Check size={18} /> Sale recorded
-              </motion.span>
-            ) : (
-              <motion.span key="rec" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                Record sale
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </Button>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => window.print()}
+            disabled={cart.length === 0}
+            className="h-11 rounded-full text-[15px] font-semibold"
+          >
+            Print
+          </Button>
+
+          <Button
+            data-tour="record"
+            onClick={handleRecord}
+            disabled={cart.length === 0 || success}
+            className="btn-accent h-11 rounded-full text-[15px] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <AnimatePresence mode="wait">
+              {success ? (
+                <motion.span key="ok" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                  <Check size={18} /> Done
+                </motion.span>
+              ) : (
+                <motion.span key="rec" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  Place Order
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </Button>
+        </div>
       </div>
     </div>
   );

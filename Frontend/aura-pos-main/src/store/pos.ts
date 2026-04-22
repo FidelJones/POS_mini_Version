@@ -164,6 +164,7 @@ type State = {
   tutorialDone: boolean;
   isAuthenticated: boolean;
   signedInAs: string | null;
+  nextCustomerSerial: number;
   isLoading: boolean;
   error: string | null;
   cartCustomerName: string;
@@ -189,6 +190,7 @@ type State = {
   setTutorialDone: (v: boolean) => void;
   signIn: (email: string) => void;
   signOut: () => void;
+  advanceCustomerSerial: () => void;
 };
 
 async function seedProductsIfNeeded() {
@@ -223,6 +225,7 @@ export const usePOS = create<State>()(
       tutorialDone: false,
       isAuthenticated: false,
       signedInAs: null,
+      nextCustomerSerial: 1,
       isLoading: false,
       error: null,
       cartCustomerName: "",
@@ -454,6 +457,10 @@ export const usePOS = create<State>()(
           cartCustomerName: "",
           cartNotes: "",
         }),
+      advanceCustomerSerial: () =>
+        set((state) => ({
+          nextCustomerSerial: state.nextCustomerSerial + 1,
+        })),
     }),
     {
       name: STORE_VERSION,
@@ -463,6 +470,7 @@ export const usePOS = create<State>()(
         tutorialDone: state.tutorialDone,
         isAuthenticated: state.isAuthenticated,
         signedInAs: state.signedInAs,
+        nextCustomerSerial: state.nextCustomerSerial,
       }),
       onRehydrateStorage: () => (state) => {
         if (state?.theme === "dark") document.documentElement.classList.add("dark");
