@@ -3,16 +3,17 @@ from decimal import Decimal
 from django.db import transaction
 from rest_framework import serializers
 
-from .models import Product, Sale, SaleItem
+from .models import Category, Product, Sale, SaleItem
 
 
-class ProductSerializer(serializers.ModelSerializer):
+class CategorySerializer(serializers.ModelSerializer):
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
     imageUrl = serializers.SerializerMethodField()
+    productCount = serializers.SerializerMethodField()
 
     class Meta:
-        model = Product
-        fields = ['id', 'name', 'price', 'image', 'imageUrl', 'createdAt']
+        model = Category
+        fields = ['id', 'name', 'image', 'imageUrl', 'productCount', 'createdAt']
         extra_kwargs = {
             'image': {'required': False, 'allow_null': True},
         }
@@ -24,6 +25,43 @@ class ProductSerializer(serializers.ModelSerializer):
         if request is not None:
             return request.build_absolute_uri(obj.image.url)
         return obj.image.url
+
+    def get_productCount(self, obj):
+        return obj.products.count()
+
+
+class ProductSerializer(serializers.ModelSerializer):
+    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+    imageUrl = serializers.SerializerMethodField()
+    categoryId = serializers.PrimaryKeyRelatedField(source='category', queryset=Category.objects.all(), required=False, allow_null=True)
+    categoryName = serializers.SerializerMethodField()
+    categoryImageUrl = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'price', 'categoryId', 'categoryName', 'categoryImageUrl', 'image', 'imageUrl', 'createdAt']
+        extra_kwargs = {
+            'image': {'required': False, 'allow_null': True},
+        }
+
+    def get_imageUrl(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get('request')
+        if request is not None:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
+
+    def get_categoryName(self, obj):
+        return obj.category.name if obj.category else None
+
+    def get_categoryImageUrl(self, obj):
+        if not obj.category or not obj.category.image:
+            return None
+        request = self.context.get('request')
+        if request is not None:
+            return request.build_absolute_uri(obj.category.image.url)
+        return obj.category.image.url
 
 
 class SaleItemSerializer(serializers.ModelSerializer):

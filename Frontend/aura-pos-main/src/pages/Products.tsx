@@ -5,11 +5,12 @@ import { usePOS, formatCurrency, Product } from "@/store/pos";
 import { Button } from "@/components/ui/button";
 
 export default function Products() {
-  const { products, addProduct, updateProduct, deleteProduct } = usePOS();
+  const { products, categories, addProduct, updateProduct, deleteProduct } = usePOS();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [categoryId, setCategoryId] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
@@ -19,6 +20,7 @@ export default function Products() {
     setEditing(null);
     setName("");
     setPrice("");
+    setCategoryId("");
     setImageFile(null);
     setPreviewUrl(null);
     setRemoveImage(false);
@@ -30,6 +32,7 @@ export default function Products() {
     setEditing(p);
     setName(p.name);
     setPrice(String(p.price));
+    setCategoryId(p.categoryId ?? "");
     setImageFile(null);
     setPreviewUrl(p.imageUrl ?? p.image ?? null);
     setRemoveImage(false);
@@ -48,11 +51,12 @@ export default function Products() {
       await updateProduct(editing.id, {
         name: name.trim(),
         price: priceNum,
+        categoryId: categoryId || null,
         imageFile,
         removeImage,
       });
     } else {
-      await addProduct({ name: name.trim(), price: priceNum, imageFile });
+      await addProduct({ name: name.trim(), price: priceNum, categoryId: categoryId || null, imageFile });
     }
     setOpen(false);
   };
@@ -192,6 +196,19 @@ export default function Products() {
                       />
                     </div>
                     {priceErr && <p className="text-xs text-destructive mt-1.5">{priceErr}</p>}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Category</label>
+                    <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="input-pos w-full">
+                      <option value="">Uncategorized</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1.5 text-xs text-muted-foreground">Categories are managed from the backend admin panel.</p>
                   </div>
 
                   <div>

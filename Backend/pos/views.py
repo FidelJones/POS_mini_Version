@@ -7,17 +7,34 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Product, Sale
-from .serializers import ProductSerializer, SaleCreateSerializer, SaleSerializer
+from .models import Category, Product, Sale
+from .serializers import CategorySerializer, ProductSerializer, SaleCreateSerializer, SaleSerializer
+
+
+class CategoryListCreateAPIView(generics.ListCreateAPIView):
+	queryset = Category.objects.all()
+	serializer_class = CategorySerializer
+
+
+class CategoryDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+	queryset = Category.objects.all()
+	serializer_class = CategorySerializer
 
 
 class ProductListCreateAPIView(generics.ListCreateAPIView):
-	queryset = Product.objects.all()
+	queryset = Product.objects.select_related('category').all()
 	serializer_class = ProductSerializer
+
+	def get_queryset(self):
+		queryset = super().get_queryset()
+		category_id = self.request.query_params.get('category')
+		if category_id:
+			queryset = queryset.filter(category_id=category_id)
+		return queryset
 
 
 class ProductDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
-	queryset = Product.objects.all()
+	queryset = Product.objects.select_related('category').all()
 	serializer_class = ProductSerializer
 
 

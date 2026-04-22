@@ -1,11 +1,18 @@
 from django.contrib import admin
-from .models import Product, Sale, SaleItem
+from .models import Category, Product, Sale, SaleItem
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+	list_display = ('id', 'name', 'image', 'created_at')
+	search_fields = ('name',)
 
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-	list_display = ('id', 'name', 'price', 'image', 'created_at')
+	list_display = ('id', 'name', 'category', 'price', 'image', 'created_at')
 	search_fields = ('name',)
+	list_filter = ('category',)
 
 
 class SaleItemInline(admin.TabularInline):

@@ -6,8 +6,20 @@ export type Product = {
   id: string;
   name: string;
   price: number;
+  categoryId?: string | null;
+  categoryName?: string | null;
+  categoryImageUrl?: string | null;
   image?: string | null;
   imageUrl?: string | null;
+  createdAt: string;
+};
+
+export type Category = {
+  id: string;
+  name: string;
+  image?: string | null;
+  imageUrl?: string | null;
+  productCount?: number;
   createdAt: string;
 };
 
@@ -68,8 +80,20 @@ const normalizeProduct = (raw: any): Product => ({
   id: String(raw.id),
   name: String(raw.name ?? ""),
   price: toNumber(raw.price),
+  categoryId: raw.categoryId ?? raw.category_id ?? null,
+  categoryName: raw.categoryName ?? raw.category_name ?? null,
+  categoryImageUrl: raw.categoryImageUrl ?? raw.category_image_url ?? null,
   image: raw.image ?? null,
   imageUrl: raw.imageUrl ?? raw.image_url ?? raw.image ?? null,
+  createdAt: String(raw.createdAt ?? raw.created_at ?? new Date().toISOString()),
+});
+
+const normalizeCategory = (raw: any): Category => ({
+  id: String(raw.id),
+  name: String(raw.name ?? ""),
+  image: raw.image ?? null,
+  imageUrl: raw.imageUrl ?? raw.image_url ?? raw.image ?? null,
+  productCount: raw.productCount ?? raw.product_count ?? 0,
   createdAt: String(raw.createdAt ?? raw.created_at ?? new Date().toISOString()),
 });
 
@@ -132,6 +156,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 
 type State = {
   products: Product[];
+  categories: Category[];
   cart: CartItem[];
   sales: Sale[];
   dashboard: DashboardSummary | null;
@@ -145,10 +170,12 @@ type State = {
   cartNotes: string;
   initialize: () => Promise<void>;
   refreshDashboard: () => Promise<void>;
-  addProduct: (p: { name: string; price: number; imageFile?: File | null }) => Promise<Product | null>;
+  refreshCategories: () => Promise<void>;
+  addCategory: (p: { name: string; imageFile?: File | null }) => Promise<Category | null>;
+  addProduct: (p: { name: string; price: number; categoryId?: string | null; imageFile?: File | null }) => Promise<Product | null>;
   updateProduct: (
     id: string,
-    p: { name: string; price: number; imageFile?: File | null; removeImage?: boolean }
+    p: { name: string; price: number; categoryId?: string | null; imageFile?: File | null; removeImage?: boolean }
   ) => Promise<Product | null>;
   deleteProduct: (id: string) => Promise<void>;
   addToCart: (productId: string) => void;
@@ -180,10 +207,15 @@ async function seedProductsIfNeeded() {
   return requestJson<any[]>("/products/");
 }
 
+async function loadCategories() {
+  return requestJson<any[]>("/categories/");
+}
+
 export const usePOS = create<State>()(
   persist(
     (set, get) => ({
       products: defaultProducts,
+      categories: [],
       cart: [],
       sales: [],
       dashboard: null,
@@ -198,14 +230,16 @@ export const usePOS = create<State>()(
       initialize: async () => {
         set({ isLoading: true, error: null });
         try {
-          const [products, sales, dashboard] = await Promise.all([
+          const [products, categories, sales, dashboard] = await Promise.all([
             seedProductsIfNeeded(),
+            loadCategories(),
             requestJson<any[]>("/sales/"),
             requestJson<any>("/dashboard/"),
           ]);
 
           set({
             products: products.map(normalizeProduct),
+            categories: categories.map(normalizeCategory),
             sales: sales.map(normalizeSale),
             dashboard: normalizeDashboard(dashboard),
           });
@@ -230,11 +264,47 @@ export const usePOS = create<State>()(
           set({ error: message });
         }
       },
-      addProduct: async ({ name, price, imageFile }) => {
+      refreshCategories: async () => {
+        try {
+          const categories = await loadCategories();
+          set({ categories: categories.map(normalizeCategory) });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to refresh categories.";
+          set({ error: message });
+        }
+      },
+      addCategory: async ({ name, imageFile }) => {
+        try {
+          const body = new FormData();
+          body.append("name", name);
+          if (imageFile) {
+            body.append("image", imageFile);
+          }
+
+          const category = normalizeCategory(
+            await requestJson("/categories/", {
+              method: "POST",
+              body,
+            })
+          );
+
+          set((state) => ({ categories: [...state.categories, category], error: null }));
+          return category;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to add category.";
+          set({ error: message });
+          toast({ title: "Add category failed", description: message, variant: "destructive" });
+          return null;
+        }
+      },
+      addProduct: async ({ name, price, categoryId, imageFile }) => {
         try {
           const body = new FormData();
           body.append("name", name);
           body.append("price", String(price));
+          if (categoryId) {
+            body.append("categoryId", categoryId);
+          }
           if (imageFile) {
             body.append("image", imageFile);
           }
@@ -256,11 +326,14 @@ export const usePOS = create<State>()(
           return null;
         }
       },
-      updateProduct: async (id, { name, price, imageFile, removeImage }) => {
+      updateProduct: async (id, { name, price, categoryId, imageFile, removeImage }) => {
         try {
           const body = new FormData();
           body.append("name", name);
           body.append("price", String(price));
+          if (categoryId) {
+            body.append("categoryId", categoryId);
+          }
           if (imageFile) {
             body.append("image", imageFile);
           } else if (removeImage) {

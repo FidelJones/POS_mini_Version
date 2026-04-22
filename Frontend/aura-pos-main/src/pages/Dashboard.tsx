@@ -13,6 +13,7 @@ import {
   FolderPlus,
   PlusCircle,
   FileBarChart2,
+  X,
 } from "lucide-react";
 
 const HOURLY_LABELS = ["6a", "8a", "10a", "12p", "2p", "4p", "6p", "8p"];
@@ -41,8 +42,13 @@ function firstNameFromIdentity(identity?: string | null) {
 }
 
 export default function Dashboard() {
-  const { sales, products, dashboard, refreshDashboard, isLoading, signedInAs } = usePOS();
+  const { sales, products, dashboard, refreshDashboard, isLoading, signedInAs, addCategory } = usePOS();
   const [liveNow, setLiveNow] = useState(() => new Date());
+  const [categoryFormOpen, setCategoryFormOpen] = useState(false);
+  const [categoryName, setCategoryName] = useState("");
+  const [categoryImage, setCategoryImage] = useState<File | null>(null);
+  const [categoryPreview, setCategoryPreview] = useState<string | null>(null);
+  const [categoryTouched, setCategoryTouched] = useState(false);
 
   useEffect(() => {
     const timer = window.setInterval(() => setLiveNow(new Date()), 1000);
@@ -54,6 +60,38 @@ export default function Dashboard() {
       void refreshDashboard();
     }
   }, [dashboard, isLoading, refreshDashboard]);
+
+  const openCategoryForm = () => {
+    setCategoryName("");
+    setCategoryImage(null);
+    setCategoryPreview(null);
+    setCategoryTouched(false);
+    setCategoryFormOpen(true);
+  };
+
+  const submitCategory = async () => {
+    setCategoryTouched(true);
+    if (!categoryName.trim()) return;
+
+    const created = await addCategory({ name: categoryName.trim(), imageFile: categoryImage });
+    if (!created) return;
+
+    setCategoryFormOpen(false);
+    setCategoryName("");
+    setCategoryImage(null);
+    setCategoryPreview(null);
+    setCategoryTouched(false);
+  };
+
+  const onCategoryImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setCategoryImage(file);
+    if (file) {
+      setCategoryPreview(URL.createObjectURL(file));
+      return;
+    }
+    setCategoryPreview(null);
+  };
 
   const data = useMemo(() => {
     const todayRevenue = dashboard?.today_total ?? 0;
@@ -234,7 +272,7 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <QuickAction href="/products" icon={FolderPlus} title="New Category" description="Create a product category group" />
+          <QuickActionButton onClick={openCategoryForm} icon={FolderPlus} title="New Category" description="Create a product category group" />
           <QuickAction href="/products" icon={PlusCircle} title="Add Product" description="Register a new stock item" />
           <QuickAction href="/sales" icon={FileBarChart2} title="View Reports" description="Open sales history and trends" />
         </div>
@@ -260,6 +298,62 @@ export default function Dashboard() {
           </ul>
         )}
       </div>
+
+      {categoryFormOpen && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setCategoryFormOpen(false)} />
+          <div className="absolute inset-0 grid place-items-center p-4 md:p-6">
+            <div className="w-full max-w-md rounded-[18px] border border-border/60 bg-card shadow-2xl p-6">
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <div>
+                  <h3 className="font-display font-bold text-xl">New category</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Add a category card that will appear in POS immediately.</p>
+                </div>
+                <button onClick={() => setCategoryFormOpen(false)} className="text-muted-foreground hover:text-foreground">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Name</label>
+                  <input
+                    value={categoryName}
+                    onChange={(e) => setCategoryName(e.target.value)}
+                    className={`input-pos w-full ${categoryTouched && !categoryName.trim() ? "border-destructive/50" : ""}`}
+                    placeholder="e.g. Beverages"
+                  />
+                  {categoryTouched && !categoryName.trim() && <p className="text-xs text-destructive mt-1.5">Give the category a name</p>}
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={onCategoryImageChange}
+                    className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-[10px] file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground hover:file:bg-muted/80"
+                  />
+                  {categoryPreview && (
+                    <div className="mt-3 flex items-center gap-3">
+                      <img src={categoryPreview} alt="Category preview" className="w-14 h-14 rounded-[10px] object-cover border border-border/60" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button onClick={() => setCategoryFormOpen(false)} className="h-10 px-4 rounded-[10px] border border-border/60 text-sm font-medium hover:bg-muted/50">
+                    Cancel
+                  </button>
+                  <button onClick={submitCategory} className="btn-accent h-10 px-5">
+                    Add category
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -284,6 +378,18 @@ function Metric({
       <div className="font-display font-bold tabular-nums text-2xl">{value}</div>
       {helper && <div className="text-xs text-muted-foreground mt-1">{helper}</div>}
     </div>
+  );
+}
+
+function QuickActionButton({ icon: Icon, title, description, onClick }: { icon: any; title: string; description: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="card-soft p-5 text-left transition hover:border-primary/35 hover:bg-primary/5">
+      <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-3">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="font-display font-semibold text-lg leading-tight">{title}</div>
+      <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+    </button>
   );
 }
 
