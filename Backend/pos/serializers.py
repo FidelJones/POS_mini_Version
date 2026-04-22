@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
 from rest_framework import serializers
@@ -81,11 +81,12 @@ class SaleSerializer(serializers.ModelSerializer):
     items = SaleItemSerializer(many=True, read_only=True)
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
     customerName = serializers.CharField(source='customer_name', allow_blank=True)
+    taxAmount = serializers.DecimalField(source='tax_amount', max_digits=12, decimal_places=2, read_only=True)
     notes = serializers.CharField(allow_blank=True)
 
     class Meta:
         model = Sale
-        fields = ['id', 'items', 'total', 'customerName', 'notes', 'createdAt']
+        fields = ['id', 'items', 'total', 'taxAmount', 'customerName', 'notes', 'createdAt']
 
 
 class SaleCreateItemSerializer(serializers.Serializer):
@@ -115,8 +116,8 @@ class SaleCreateSerializer(serializers.Serializer):
     def create(self, validated_data):
         customer_name = validated_data.get('customer_name', '')
         notes = validated_data.get('notes', '')
-        sale = Sale.objects.create(total=Decimal('0.00'), customer_name=customer_name, notes=notes)
-        total = Decimal('0.00')
+        sale = Sale.objects.create(total=Decimal('0.00'), tax_amount=Decimal('0.00'), customer_name=customer_name, notes=notes)
+        subtotal = Decimal('0.00')
 
         product_ids = [item['product_id'] for item in validated_data['items']]
         products = Product.objects.in_bulk(product_ids)
@@ -128,7 +129,7 @@ class SaleCreateSerializer(serializers.Serializer):
 
             quantity = item['quantity']
             line_total = product.price * quantity
-            total += line_total
+            subtotal += line_total
 
             SaleItem.objects.create(
                 sale=sale,
@@ -138,6 +139,9 @@ class SaleCreateSerializer(serializers.Serializer):
                 quantity=quantity,
             )
 
+        tax_amount = (subtotal * Decimal('0.18')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        total = subtotal + tax_amount
         sale.total = total
-        sale.save(update_fields=['total'])
+        sale.tax_amount = tax_amount
+        sale.save(update_fields=['total', 'tax_amount'])
         return sale

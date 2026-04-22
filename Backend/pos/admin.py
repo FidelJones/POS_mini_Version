@@ -23,5 +23,5 @@ class SaleItemInline(admin.TabularInline):
 
 @admin.register(Sale)
 class SaleAdmin(admin.ModelAdmin):
-	list_display = ('id', 'total', 'created_at')
+	list_display = ('id', 'tax_amount', 'total', 'created_at')
 	inlines = [SaleItemInline]

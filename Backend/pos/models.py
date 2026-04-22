@@ -32,6 +32,7 @@ class Category(models.Model):
 
 class Sale(models.Model):
 	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+	tax_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 	total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 	customer_name = models.CharField(max_length=255, blank=True, default='')
 	notes = models.TextField(blank=True, default='')

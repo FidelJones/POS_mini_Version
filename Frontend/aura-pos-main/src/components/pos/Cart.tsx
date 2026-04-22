@@ -19,9 +19,9 @@ export function Cart({ onAfterRecord }: { onAfterRecord?: () => void }) {
   } = usePOS();
   const [success, setSuccess] = useState(false);
   const subtotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
-  const tax = 0;
+  const tax = subtotal * 0.18;
   const discount = 0;
-  const total = subtotal;
+  const total = subtotal + tax - discount;
   const customerId = `js${String(nextCustomerSerial).padStart(6, "0")}`;
 
   const handleRecord = async () => {
@@ -155,7 +155,7 @@ export function Cart({ onAfterRecord }: { onAfterRecord?: () => void }) {
             <span className="font-semibold tabular-nums">{formatCurrency(subtotal)}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Tax</span>
+            <span className="text-muted-foreground">Tax (18%)</span>
             <span className="font-semibold tabular-nums">{formatCurrency(tax)}</span>
           </div>
           <div className="flex items-center justify-between text-sm">

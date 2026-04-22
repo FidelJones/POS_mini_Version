@@ -33,6 +33,7 @@ export type CartItem = {
 export type Sale = {
   id: string;
   items: { productId: string; name: string; price: number; quantity: number }[];
+  taxAmount?: number;
   total: number;
   customerName?: string;
   notes?: string;
@@ -107,6 +108,7 @@ const normalizeSale = (raw: any): Sale => ({
         quantity: toNumber(item.quantity),
       }))
     : [],
+  taxAmount: toNumber(raw.taxAmount ?? raw.tax_amount),
   total: toNumber(raw.total),
   customerName: raw.customerName ?? raw.customer_name ?? undefined,
   notes: raw.notes ?? undefined,
