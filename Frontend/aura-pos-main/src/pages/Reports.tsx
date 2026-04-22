@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Download, FileSpreadsheet, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/store/pos";
 
@@ -16,6 +16,12 @@ type Sale = {
   customerName?: string;
   notes?: string;
   createdAt: string;
+};
+
+type HeatmapHour = {
+  hour: number;
+  sale_count: number;
+  revenue: number;
 };
 
 const toNumber = (value: unknown) => {
@@ -64,8 +70,17 @@ export default function Reports() {
   const [fromDate, setFromDate] = useState(toDateInput(weekStart));
   const [toDate, setToDate] = useState(toDateInput(today));
   const [sales, setSales] = useState<Sale[]>([]);
+  const [heatmapDate, setHeatmapDate] = useState(toDateInput(today));
+  const [heatmap, setHeatmap] = useState<HeatmapHour[]>([]);
+  const [heatmapLoading, setHeatmapLoading] = useState(false);
+  const [heatmapError, setHeatmapError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void loadHeatmap(toDateInput(today));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const applyPeriod = (next: "today" | "week" | "month" | "custom") => {
     setPeriod(next);
@@ -110,6 +125,34 @@ export default function Reports() {
     }
   };
 
+  const loadHeatmap = async (date: string) => {
+    setHeatmapLoading(true);
+    setHeatmapError(null);
+    try {
+      const response = await fetch(`/api/reports/heatmap/?date=${encodeURIComponent(date)}`);
+      if (!response.ok) {
+        throw new Error(`Failed to load heatmap (${response.status})`);
+      }
+
+      const payload = await response.json();
+      const next = Array.isArray(payload?.hours)
+        ? payload.hours.map((row: any) => ({
+            hour: toNumber(row.hour),
+            sale_count: toNumber(row.sale_count),
+            revenue: toNumber(row.revenue),
+          }))
+        : [];
+
+      setHeatmap(next);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load heatmap archive.";
+      setHeatmapError(message);
+      setHeatmap([]);
+    } finally {
+      setHeatmapLoading(false);
+    }
+  };
+
   const summary = useMemo(() => {
     const totalRevenue = sales.reduce((sum, sale) => sum + sale.total, 0);
     const numberOfSales = sales.length;
@@ -142,6 +185,8 @@ export default function Reports() {
       uniqueCustomers: customers.size,
     };
   }, [sales]);
+
+  const maxHeatCount = Math.max(1, ...heatmap.map((slot) => slot.sale_count));
 
   const downloadCsv = () => {
     if (sales.length === 0) return;
@@ -294,6 +339,50 @@ export default function Reports() {
             </table>
           </div>
         )}
+      </div>
+
+      <div className="card-soft p-4 md:p-5 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+          <div>
+            <h2 className="font-display font-semibold text-lg">Hourly heatmap archive</h2>
+            <p className="text-sm text-muted-foreground">Persisted hourly sales snapshot for a selected date.</p>
+          </div>
+          <div className="flex items-end gap-2">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Heatmap date</label>
+              <input
+                type="date"
+                value={heatmapDate}
+                onChange={(e) => setHeatmapDate(e.target.value)}
+                className="input-pos mt-1"
+              />
+            </div>
+            <button
+              onClick={() => void loadHeatmap(heatmapDate)}
+              disabled={heatmapLoading || !heatmapDate}
+              className="btn-accent h-11 px-4 rounded-[10px] text-sm font-semibold disabled:opacity-60"
+            >
+              {heatmapLoading ? "Loading" : "Load"}
+            </button>
+          </div>
+        </div>
+
+        {heatmapError && <div className="rounded-[10px] border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{heatmapError}</div>}
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
+          {Array.from({ length: 24 }).map((_, hour) => {
+            const slot = heatmap.find((x) => x.hour === hour) ?? { hour, sale_count: 0, revenue: 0 };
+            const intensity = slot.sale_count === 0 ? 0.08 : 0.2 + (slot.sale_count / maxHeatCount) * 0.8;
+            return (
+              <div key={hour} className="rounded-[10px] border border-border/60 p-2">
+                <div className="text-xs font-medium text-muted-foreground">{String(hour).padStart(2, "0")}:00</div>
+                <div className="h-8 rounded-md mt-2" style={{ background: `hsl(var(--primary) / ${intensity})` }} />
+                <div className="mt-2 text-xs text-muted-foreground">{slot.sale_count} sales</div>
+                <div className="text-xs font-semibold tabular-nums">{formatCurrency(slot.revenue)}</div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
