@@ -6,6 +6,7 @@ from .views import (
     DashboardAPIView,
     ProductDetailAPIView,
     ProductListCreateAPIView,
+    ReportsHeatmapAPIView,
     SaleListCreateAPIView,
 )
 
@@ -16,5 +17,6 @@ urlpatterns = [
     path('products/<uuid:pk>/', ProductDetailAPIView.as_view(), name='products-detail'),
     path('sales/', SaleListCreateAPIView.as_view(), name='sales-list-create'),
     path('dashboard/', DashboardAPIView.as_view(), name='dashboard'),
+    path('reports/heatmap/', ReportsHeatmapAPIView.as_view(), name='reports-heatmap'),
 ]
 

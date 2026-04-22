@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MaxValueValidator, MinValueValidator
 import uuid
 
 
@@ -54,3 +55,19 @@ class SaleItem(models.Model):
 
 	def __str__(self):
 		return f"{self.quantity} x {self.name_snapshot}"
+
+
+class HourlyAggregate(models.Model):
+	date = models.DateField(db_index=True)
+	hour = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(23)])
+	sale_count = models.PositiveIntegerField(default=0)
+	revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+	class Meta:
+		ordering = ['-date', 'hour']
+		constraints = [
+			models.UniqueConstraint(fields=['date', 'hour'], name='unique_hourly_aggregate_date_hour'),
+		]
+
+	def __str__(self):
+		return f"{self.date} {self.hour:02d}:00"

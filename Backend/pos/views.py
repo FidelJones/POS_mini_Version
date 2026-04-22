@@ -2,12 +2,13 @@ from datetime import timedelta
 
 from django.db.models import Avg, Count, Sum
 from django.db.models.functions import TruncDate
+from django.utils.dateparse import parse_date
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Category, Product, Sale
+from .models import Category, HourlyAggregate, Product, Sale
 from .serializers import CategorySerializer, ProductSerializer, SaleCreateSerializer, SaleSerializer
 
 
@@ -111,3 +112,27 @@ class DashboardAPIView(APIView):
 			'chart': chart,
 		}
 		return Response(data)
+
+
+class ReportsHeatmapAPIView(APIView):
+	def get(self, request):
+		date_param = request.query_params.get('date')
+		target_date = parse_date(date_param) if date_param else timezone.localdate()
+		if date_param and target_date is None:
+			return Response({'detail': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+
+		rows = HourlyAggregate.objects.filter(date=target_date).values('hour', 'sale_count', 'revenue')
+		rows_by_hour = {row['hour']: row for row in rows}
+
+		hours = []
+		for hour in range(24):
+			row = rows_by_hour.get(hour)
+			hours.append(
+				{
+					'hour': hour,
+					'sale_count': int(row['sale_count']) if row else 0,
+					'revenue': float(row['revenue']) if row else 0.0,
+				}
+			)
+
+		return Response({'date': target_date.isoformat(), 'hours': hours})
