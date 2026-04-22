@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, History, Settings, HelpCircle, Moon, Sun, Sparkles, LogOut, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, History, FileBarChart2, Settings, HelpCircle, Moon, Sun, Sparkles, LogOut, ShieldCheck } from "lucide-react";
 import { usePOS } from "@/store/pos";
 import { Button } from "@/components/ui/button";
 import { useTutorial } from "@/components/pos/TutorialProvider";
@@ -21,6 +21,7 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/pos", label: "POS", icon: ShoppingBag },
   { to: "/products", label: "Products", icon: Package },
+  { to: "/reports", label: "Reports", icon: FileBarChart2 },
   { to: "/sales", label: "Sales History", icon: History },
   { to: "/settings", label: "Settings", icon: Settings },
 ];

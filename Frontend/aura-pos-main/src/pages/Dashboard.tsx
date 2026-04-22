@@ -274,7 +274,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <QuickActionButton onClick={openCategoryForm} icon={FolderPlus} title="New Category" description="Create a product category group" />
           <QuickAction href="/products" icon={PlusCircle} title="Add Product" description="Register a new stock item" />
-          <QuickAction href="/sales" icon={FileBarChart2} title="View Reports" description="Open sales history and trends" />
+          <QuickAction href="/reports" icon={FileBarChart2} title="View Reports" description="Open generated business reports" />
         </div>
       </div>
 
