@@ -72,37 +72,60 @@ export default function Sales() {
           <p className="text-sm text-muted-foreground">Record a sale from the POS screen to see it here.</p>
         </div>
       ) : (
-        <div className="card-soft overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border/60">
-                <th className="px-5 py-3 font-medium">Sale</th>
-                <th className="px-5 py-3 font-medium">Customer</th>
-                <th className="px-5 py-3 font-medium">Items</th>
-                <th className="px-5 py-3 font-medium">Total</th>
-                <th className="px-5 py-3 font-medium hidden md:table-cell">When</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((s) => (
-                <tr key={s.id} className="border-b border-border/40 last:border-0 hover:bg-muted/30 transition">
-                  <td className="px-5 py-4 font-mono text-xs text-muted-foreground">#{s.id.slice(0, 6)}</td>
-                  <td className="px-5 py-4 text-sm">
-                    <div className="font-medium">{s.customerName || "—"}</div>
-                    {s.notes && <div className="text-xs text-muted-foreground italic truncate max-w-xs">{s.notes}</div>}
-                  </td>
-                  <td className="px-5 py-4 text-sm">
-                    {s.items.map((i) => `${i.quantity}× ${i.name}`).join(", ")}
-                  </td>
-                  <td className="px-5 py-4 font-semibold tabular-nums">{formatCurrency(s.total)}</td>
-                  <td className="px-5 py-4 text-sm text-muted-foreground hidden md:table-cell">
-                    {new Date(s.createdAt).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="md:hidden space-y-2">
+            {filtered.map((s) => (
+              <div key={s.id} className="card-soft p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-mono text-xs text-muted-foreground">#{s.id.slice(0, 6)}</div>
+                    <div className="font-medium text-sm mt-1">{s.customerName || "—"}</div>
+                    {s.notes && <div className="text-xs text-muted-foreground italic truncate mt-1">{s.notes}</div>}
+                    <div className="text-xs text-muted-foreground mt-1">{new Date(s.createdAt).toLocaleString()}</div>
+                  </div>
+                  <div className="font-semibold tabular-nums text-sm">{formatCurrency(s.total)}</div>
+                </div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  {s.items.map((i) => `${i.quantity}× ${i.name}`).join(", ")}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block card-soft overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[820px]">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border/60">
+                    <th className="px-5 py-3 font-medium">Sale</th>
+                    <th className="px-5 py-3 font-medium">Customer</th>
+                    <th className="px-5 py-3 font-medium">Items</th>
+                    <th className="px-5 py-3 font-medium">Total</th>
+                    <th className="px-5 py-3 font-medium hidden md:table-cell">When</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((s) => (
+                    <tr key={s.id} className="border-b border-border/40 last:border-0 hover:bg-muted/30 transition">
+                      <td className="px-5 py-4 font-mono text-xs text-muted-foreground">#{s.id.slice(0, 6)}</td>
+                      <td className="px-5 py-4 text-sm">
+                        <div className="font-medium">{s.customerName || "—"}</div>
+                        {s.notes && <div className="text-xs text-muted-foreground italic truncate max-w-xs">{s.notes}</div>}
+                      </td>
+                      <td className="px-5 py-4 text-sm">
+                        {s.items.map((i) => `${i.quantity}× ${i.name}`).join(", ")}
+                      </td>
+                      <td className="px-5 py-4 font-semibold tabular-nums">{formatCurrency(s.total)}</td>
+                      <td className="px-5 py-4 text-sm text-muted-foreground hidden md:table-cell">
+                        {new Date(s.createdAt).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

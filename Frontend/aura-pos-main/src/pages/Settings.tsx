@@ -49,12 +49,12 @@ export default function Settings() {
 
 function Row({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
   return (
-    <div className="card-soft p-5 flex items-center justify-between gap-4">
-      <div>
+    <div className="card-soft p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="min-w-0">
         <div className="font-medium">{label}</div>
         <div className="text-sm text-muted-foreground">{hint}</div>
       </div>
-      {children}
+      <div className="w-full sm:w-auto">{children}</div>
     </div>
   );
 }

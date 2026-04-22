@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Download, FileSpreadsheet, Loader2, Printer } from "lucide-react";
 import { formatCurrency } from "@/store/pos";
+import { buildReportPrintHtml } from "@/components/reports/ReportPrint";
 
 type SaleItem = {
   productId: string;
@@ -20,6 +21,14 @@ type Sale = {
 
 type HeatmapHour = {
   hour: number;
+  sale_count: number;
+  revenue: number;
+};
+
+type HeatmapPeriod = {
+  startHour: number;
+  endHour: number;
+  label: string;
   sale_count: number;
   revenue: number;
 };
@@ -52,6 +61,14 @@ const toDateInput = (date: Date) => {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
+
+const formatHourLabel = (hour: number) => {
+  const suffix = hour >= 12 ? "pm" : "am";
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${hour12}${suffix}`;
+};
+
+const buildPeriodLabel = (startHour: number, endHour: number) => `${formatHourLabel(startHour)}-${formatHourLabel(endHour)}`;
 
 function escapeCsvField(value: string) {
   const text = value ?? "";
@@ -186,7 +203,59 @@ export default function Reports() {
     };
   }, [sales]);
 
-  const maxHeatCount = Math.max(1, ...heatmap.map((slot) => slot.sale_count));
+  const productPerformance = useMemo(() => {
+    const map: Record<string, { name: string; quantity: number; revenue: number }> = {};
+    for (const sale of sales) {
+      for (const item of sale.items) {
+        const key = item.productId || item.name;
+        if (!map[key]) {
+          map[key] = { name: item.name || "Unnamed", quantity: 0, revenue: 0 };
+        }
+        map[key].quantity += item.quantity;
+        map[key].revenue += item.quantity * item.price;
+      }
+    }
+
+    const totalRevenue = summary.totalRevenue || 1;
+    return Object.values(map)
+      .sort((a, b) => b.revenue - a.revenue)
+      .map((row) => ({
+        ...row,
+        share: (row.revenue / totalRevenue) * 100,
+      }));
+  }, [sales, summary.totalRevenue]);
+
+  const periodHeatmap = useMemo<HeatmapPeriod[]>(() => {
+    const byHour = new Map<number, HeatmapHour>();
+    for (const slot of heatmap) {
+      byHour.set(slot.hour, slot);
+    }
+
+    const periodStarts = [6, 9, 12, 15, 18, 21, 0, 3];
+    return periodStarts.map((startHour) => {
+      const endHour = (startHour + 3) % 24;
+      let sale_count = 0;
+      let revenue = 0;
+
+      for (let offset = 0; offset < 3; offset += 1) {
+        const hour = (startHour + offset) % 24;
+        const row = byHour.get(hour);
+        if (!row) continue;
+        sale_count += row.sale_count;
+        revenue += row.revenue;
+      }
+
+      return {
+        startHour,
+        endHour,
+        label: buildPeriodLabel(startHour, endHour),
+        sale_count,
+        revenue,
+      };
+    });
+  }, [heatmap]);
+
+  const maxHeatCount = Math.max(1, ...periodHeatmap.map((slot) => slot.sale_count));
 
   const downloadCsv = () => {
     if (sales.length === 0) return;
@@ -215,6 +284,29 @@ export default function Reports() {
     URL.revokeObjectURL(url);
   };
 
+  const printReport = () => {
+    const html = buildReportPrintHtml({
+      businessName: "Jambo POS",
+      fromDate,
+      toDate,
+      summary,
+      productPerformance,
+      sales,
+      generatedAt: new Date().toLocaleString(),
+    });
+
+    const printWindow = window.open("", "_blank", "noopener,noreferrer");
+    if (!printWindow) {
+      setError("Could not open print window. Please allow popups for this site.");
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+  };
+
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-5">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -222,13 +314,22 @@ export default function Reports() {
           <h1 className="font-display font-bold text-2xl md:text-3xl">Reports</h1>
           <p className="text-sm text-muted-foreground mt-1">Generate, review, and export report data by date range.</p>
         </div>
-        <button
-          onClick={downloadCsv}
-          disabled={sales.length === 0}
-          className="h-10 px-4 rounded-[10px] border border-border/70 text-sm font-medium flex items-center gap-2 hover:bg-muted/40 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Download size={15} /> Download CSV
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={downloadCsv}
+            disabled={sales.length === 0}
+            className="h-10 px-4 rounded-[10px] border border-border/70 text-sm font-medium flex items-center gap-2 hover:bg-muted/40 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download size={15} /> Download CSV
+          </button>
+          <button
+            onClick={printReport}
+            disabled={sales.length === 0}
+            className="btn-accent h-10 px-4 rounded-[10px] text-sm font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Printer size={15} /> Print report
+          </button>
+        </div>
       </div>
 
       <div className="card-soft p-4 md:p-5 space-y-4">
@@ -251,7 +352,7 @@ export default function Reports() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_auto] gap-3 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_auto_1fr_auto] gap-3 items-end">
           <div>
             <label className="text-xs font-medium text-muted-foreground">From date</label>
             <input
@@ -264,7 +365,7 @@ export default function Reports() {
               className="input-pos w-full mt-1"
             />
           </div>
-          <div className="text-muted-foreground text-sm md:pb-3">to</div>
+          <div className="text-muted-foreground text-sm hidden lg:block lg:pb-3">to</div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">To date</label>
             <input
@@ -280,7 +381,7 @@ export default function Reports() {
           <button
             onClick={generateReport}
             disabled={loading || !fromDate || !toDate}
-            className="btn-accent h-11 px-5 rounded-[10px] text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+            className="btn-accent h-11 px-5 rounded-[10px] text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed sm:col-span-2 lg:col-span-1"
           >
             {loading ? (
               <span className="inline-flex items-center gap-2">
@@ -315,7 +416,7 @@ export default function Reports() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[780px]">
+            <table className="w-full min-w-[720px]">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border/60">
                   <th className="px-4 py-3">Sale</th>
@@ -369,13 +470,13 @@ export default function Reports() {
 
         {heatmapError && <div className="rounded-[10px] border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{heatmapError}</div>}
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
-          {Array.from({ length: 24 }).map((_, hour) => {
-            const slot = heatmap.find((x) => x.hour === hour) ?? { hour, sale_count: 0, revenue: 0 };
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-2">
+          {periodHeatmap.map((slot) => {
             const intensity = slot.sale_count === 0 ? 0.08 : 0.2 + (slot.sale_count / maxHeatCount) * 0.8;
+            const tooltip = `${slot.label}: ${slot.sale_count} sales, ${formatCurrency(slot.revenue)} revenue`;
             return (
-              <div key={hour} className="rounded-[10px] border border-border/60 p-2">
-                <div className="text-xs font-medium text-muted-foreground">{String(hour).padStart(2, "0")}:00</div>
+              <div key={slot.label} className="rounded-[10px] border border-border/60 p-2" title={tooltip}>
+                <div className="text-xs font-medium text-muted-foreground">{slot.label}</div>
                 <div className="h-8 rounded-md mt-2" style={{ background: `hsl(var(--primary) / ${intensity})` }} />
                 <div className="mt-2 text-xs text-muted-foreground">{slot.sale_count} sales</div>
                 <div className="text-xs font-semibold tabular-nums">{formatCurrency(slot.revenue)}</div>

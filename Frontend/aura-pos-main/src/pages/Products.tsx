@@ -91,56 +91,97 @@ export default function Products() {
           <p className="text-sm text-muted-foreground">Add your first one to get started.</p>
         </div>
       ) : (
-        <div className="card-soft overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border/60">
-                <th className="px-5 py-3 font-medium">Product</th>
-                <th className="px-5 py-3 font-medium">Price</th>
-                <th className="px-5 py-3 font-medium hidden md:table-cell">Added</th>
-                <th className="px-5 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((p) => (
-                <tr key={p.id} className="border-b border-border/40 last:border-0 hover:bg-muted/30 transition">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-[10px] bg-muted overflow-hidden flex-shrink-0">
-                        {p.imageUrl || p.image ? (
-                          <img src={p.imageUrl ?? p.image ?? ""} alt={p.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">N/A</div>
-                        )}
-                      </div>
-                      <span className="font-medium">{p.name}</span>
+        <>
+          <div className="md:hidden space-y-2">
+            {products.map((p) => (
+              <div key={p.id} className="card-soft p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-[10px] bg-muted overflow-hidden flex-shrink-0">
+                      {p.imageUrl || p.image ? (
+                        <img src={p.imageUrl ?? p.image ?? ""} alt={p.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">N/A</div>
+                      )}
                     </div>
-                  </td>
-                  <td className="px-5 py-4 tabular-nums font-semibold">{formatCurrency(p.price)}</td>
-                  <td className="px-5 py-4 text-sm text-muted-foreground hidden md:table-cell">
-                    {new Date(p.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <div className="inline-flex gap-1">
-                      <button
-                        onClick={() => openEdit(p)}
-                        className="w-8 h-8 rounded-[8px] hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition"
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      <button
-                        onClick={() => deleteProduct(p.id)}
-                        className="w-8 h-8 rounded-[8px] hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(p.createdAt).toLocaleDateString()}</div>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                  <div className="text-sm font-semibold tabular-nums">{formatCurrency(p.price)}</div>
+                </div>
+                <div className="flex justify-end gap-1 mt-2">
+                  <button
+                    onClick={() => openEdit(p)}
+                    className="w-8 h-8 rounded-[8px] hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    onClick={() => deleteProduct(p.id)}
+                    className="w-8 h-8 rounded-[8px] hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block card-soft overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px]">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border/60">
+                    <th className="px-5 py-3 font-medium">Product</th>
+                    <th className="px-5 py-3 font-medium">Price</th>
+                    <th className="px-5 py-3 font-medium hidden md:table-cell">Added</th>
+                    <th className="px-5 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((p) => (
+                    <tr key={p.id} className="border-b border-border/40 last:border-0 hover:bg-muted/30 transition">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-[10px] bg-muted overflow-hidden flex-shrink-0">
+                            {p.imageUrl || p.image ? (
+                              <img src={p.imageUrl ?? p.image ?? ""} alt={p.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">N/A</div>
+                            )}
+                          </div>
+                          <span className="font-medium">{p.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 tabular-nums font-semibold">{formatCurrency(p.price)}</td>
+                      <td className="px-5 py-4 text-sm text-muted-foreground hidden md:table-cell">
+                        {new Date(p.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <div className="inline-flex gap-1">
+                          <button
+                            onClick={() => openEdit(p)}
+                            className="w-8 h-8 rounded-[8px] hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition"
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          <button
+                            onClick={() => deleteProduct(p.id)}
+                            className="w-8 h-8 rounded-[8px] hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       <AnimatePresence>
