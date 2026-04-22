@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Product, Sale, SaleItem
+from .models import Category, HourlyAggregate, Product, Sale, SaleItem
 
 
 @admin.register(Category)
@@ -25,3 +25,9 @@ class SaleItemInline(admin.TabularInline):
 class SaleAdmin(admin.ModelAdmin):
 	list_display = ('id', 'tax_amount', 'total', 'created_at')
 	inlines = [SaleItemInline]
+
+
+@admin.register(HourlyAggregate)
+class HourlyAggregateAdmin(admin.ModelAdmin):
+	list_display = ('date', 'hour', 'sale_count', 'revenue')
+	list_filter = ('date',)
