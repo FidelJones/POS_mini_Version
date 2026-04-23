@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
+
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -23,9 +25,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-*d4&k61wkrn2#jcw8p+khmo)cz0*h=15=-w#$+=b=-h5@ox785'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() in {'1', 'true', 'yes', 'on'}
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
+def _csv_env(name, default=''):
+    return [value.strip() for value in os.getenv(name, default).split(',') if value.strip()]
+
+
+render_host = os.getenv('RENDER_EXTERNAL_HOSTNAME')
+allowed_hosts_default = 'localhost,127.0.0.1,testserver,.onrender.com'
+if render_host:
+    allowed_hosts_default = f'{allowed_hosts_default},{render_host}'
+
+ALLOWED_HOSTS = _csv_env('ALLOWED_HOSTS', allowed_hosts_default)
 
 
 # Application definition
@@ -123,10 +134,14 @@ STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-]
+CORS_ALLOWED_ORIGINS = _csv_env(
+    'CORS_ALLOWED_ORIGINS',
+    'http://localhost:5173,http://127.0.0.1:5173',
+)
+
+CSRF_TRUSTED_ORIGINS = _csv_env('CSRF_TRUSTED_ORIGINS')
+if render_host:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{render_host}')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
