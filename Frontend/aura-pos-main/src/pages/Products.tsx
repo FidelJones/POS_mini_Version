@@ -72,6 +72,14 @@ export default function Products() {
     setPreviewUrl(editing?.imageUrl ?? editing?.image ?? null);
   };
 
+  const handleImageLoad = (name: string, imageUrl?: string | null) => {
+    console.log("[MEDIA DEBUG] product image loaded", { name, imageUrl });
+  };
+
+  const handleImageError = (name: string, imageUrl?: string | null) => {
+    console.error("[MEDIA DEBUG] product image failed to load", { name, imageUrl });
+  };
+
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -99,7 +107,13 @@ export default function Products() {
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-[10px] bg-muted overflow-hidden flex-shrink-0">
                       {p.imageUrl || p.image ? (
-                        <img src={p.imageUrl ?? p.image ?? ""} alt={p.name} className="w-full h-full object-cover" />
+                        <img
+                          src={p.imageUrl ?? p.image ?? ""}
+                          alt={p.name}
+                          className="w-full h-full object-cover"
+                          onLoad={() => handleImageLoad(p.name, p.imageUrl ?? p.image ?? null)}
+                          onError={() => handleImageError(p.name, p.imageUrl ?? p.image ?? null)}
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">N/A</div>
                       )}
@@ -147,7 +161,13 @@ export default function Products() {
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-[10px] bg-muted overflow-hidden flex-shrink-0">
                             {p.imageUrl || p.image ? (
-                              <img src={p.imageUrl ?? p.image ?? ""} alt={p.name} className="w-full h-full object-cover" />
+                              <img
+                                src={p.imageUrl ?? p.image ?? ""}
+                                alt={p.name}
+                                className="w-full h-full object-cover"
+                                onLoad={() => handleImageLoad(p.name, p.imageUrl ?? p.image ?? null)}
+                                onError={() => handleImageError(p.name, p.imageUrl ?? p.image ?? null)}
+                              />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">N/A</div>
                             )}

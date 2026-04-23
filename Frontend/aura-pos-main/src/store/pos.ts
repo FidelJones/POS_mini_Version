@@ -225,6 +225,11 @@ async function refreshAccessToken() {
 export async function requestJson<T>(path: string, init?: RequestInit, retryOnUnauthorized = true): Promise<T> {
   const hasFormDataBody = typeof FormData !== "undefined" && init?.body instanceof FormData;
   const { accessToken } = usePOS.getState();
+  const method = (init?.method ?? "GET").toUpperCase();
+
+  if (path.startsWith("/products/") || path.startsWith("/categories/") || path.startsWith("/dashboard/") || path.startsWith("/sales/") || path.startsWith("/reports/")) {
+    console.log("[API DEBUG] request", { path, method, hasFormDataBody });
+  }
 
   const headers: Record<string, string> = {
     ...(hasFormDataBody ? {} : { "Content-Type": "application/json" }),
@@ -248,11 +253,19 @@ export async function requestJson<T>(path: string, init?: RequestInit, retryOnUn
   }
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    const message = await extractErrorMessage(response);
+    if (path.startsWith("/products/") || path.startsWith("/categories/")) {
+      console.error("[API DEBUG] error response", { path, status: response.status, message });
+    }
+    throw new Error(message);
   }
 
   if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
+  const payload = (await response.json()) as T;
+  if (path.startsWith("/products/") || path.startsWith("/categories/")) {
+    console.log("[API DEBUG] response", { path, payload });
+  }
+  return payload;
 }
 
 type State = {
@@ -415,6 +428,12 @@ export const usePOS = create<State>()(
             })
           );
 
+          console.log("[MEDIA DEBUG] category saved", {
+            name: category.name,
+            image: category.image,
+            imageUrl: category.imageUrl,
+          });
+
           set((state) => ({ categories: [...state.categories, category], error: null }));
           return category;
         } catch (error) {
@@ -442,6 +461,13 @@ export const usePOS = create<State>()(
               body,
             })
           );
+
+          console.log("[MEDIA DEBUG] product saved", {
+            name: product.name,
+            image: product.image,
+            imageUrl: product.imageUrl,
+            categoryImageUrl: product.categoryImageUrl,
+          });
 
           set((state) => ({ products: [product, ...state.products], error: null }));
           void get().refreshDashboard();
@@ -473,6 +499,14 @@ export const usePOS = create<State>()(
               body,
             })
           );
+
+          console.log("[MEDIA DEBUG] product updated", {
+            id: product.id,
+            name: product.name,
+            image: product.image,
+            imageUrl: product.imageUrl,
+            categoryImageUrl: product.categoryImageUrl,
+          });
 
           set((state) => ({
             products: state.products.map((item) => (item.id === id ? product : item)),

@@ -16,9 +16,54 @@ from .models import Category, Product, Sale
 from .serializers import CategorySerializer, ProductSerializer, SaleCreateSerializer, SaleSerializer
 
 
+def _debug_image_state(kind, instance):
+	image_name = getattr(getattr(instance, 'image', None), 'name', None)
+	image_url = None
+	try:
+		image_url = getattr(getattr(instance, 'image', None), 'url', None) if image_name else None
+	except Exception:
+		image_url = None
+	print(
+		f"[MEDIA DEBUG] {kind} id={getattr(instance, 'id', None)} name={getattr(instance, 'name', None)} image_name={image_name} image_url={image_url}",
+		flush=True,
+	)
+
+
 class CategoryListCreateAPIView(generics.ListCreateAPIView):
 	queryset = Category.objects.all()
 	serializer_class = CategorySerializer
+
+	def list(self, request, *args, **kwargs):
+		response = super().list(request, *args, **kwargs)
+		print(f"[MEDIA DEBUG] Category list returned {len(response.data)} rows", flush=True)
+		for item in response.data[:10]:
+			print(
+				f"[MEDIA DEBUG] Category payload id={item.get('id')} name={item.get('name')} image={item.get('image')} imageUrl={item.get('imageUrl')}",
+				flush=True,
+			)
+		return response
+    
+	def perform_create(self, serializer):
+		instance = serializer.save()
+		print(
+			f"[MEDIA DEBUG] Category created id={instance.id} name={instance.name} image_name={getattr(instance.image, 'name', None)}",
+			flush=True,
+		)
+    
+	def perform_update(self, serializer):
+		instance = serializer.save()
+		print(
+			f"[MEDIA DEBUG] Category updated id={instance.id} name={instance.name} image_name={getattr(instance.image, 'name', None)}",
+			flush=True,
+		)
+
+	def perform_create(self, serializer):
+		instance = serializer.save()
+		_debug_image_state('Category created', instance)
+
+	def perform_update(self, serializer):
+		instance = serializer.save()
+		_debug_image_state('Category updated', instance)
 
 
 class CategoryDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
@@ -35,7 +80,50 @@ class ProductListCreateAPIView(generics.ListCreateAPIView):
 		category_id = self.request.query_params.get('category')
 		if category_id:
 			queryset = queryset.filter(category_id=category_id)
+		print(f"[MEDIA DEBUG] Product queryset count={queryset.count()} category_filter={category_id}", flush=True)
 		return queryset
+    
+	def list(self, request, *args, **kwargs):
+		response = super().list(request, *args, **kwargs)
+		print(f"[MEDIA DEBUG] Product list returned {len(response.data)} rows", flush=True)
+		for item in response.data[:10]:
+			print(
+				f"[MEDIA DEBUG] Product payload id={item.get('id')} name={item.get('name')} image={item.get('image')} imageUrl={item.get('imageUrl')} categoryImageUrl={item.get('categoryImageUrl')}",
+				flush=True,
+			)
+		return response
+    
+	def perform_create(self, serializer):
+		instance = serializer.save()
+		print(
+			f"[MEDIA DEBUG] Product created id={instance.id} name={instance.name} image_name={getattr(instance.image, 'name', None)} category_id={instance.category_id}",
+			flush=True,
+		)
+    
+	def perform_update(self, serializer):
+		instance = serializer.save()
+		print(
+			f"[MEDIA DEBUG] Product updated id={instance.id} name={instance.name} image_name={getattr(instance.image, 'name', None)} category_id={instance.category_id}",
+			flush=True,
+		)
+
+	def list(self, request, *args, **kwargs):
+		response = super().list(request, *args, **kwargs)
+		print(f"[MEDIA DEBUG] Product list returned {len(response.data)} rows", flush=True)
+		for item in response.data[:10]:
+			print(
+				f"[MEDIA DEBUG] Product payload id={item.get('id')} name={item.get('name')} image={item.get('image')} imageUrl={item.get('imageUrl')} categoryImageUrl={item.get('categoryImageUrl')}",
+				flush=True,
+			)
+		return response
+
+	def perform_create(self, serializer):
+		instance = serializer.save()
+		_debug_image_state('Product created', instance)
+
+	def perform_update(self, serializer):
+		instance = serializer.save()
+		_debug_image_state('Product updated', instance)
 
 
 class ProductDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
