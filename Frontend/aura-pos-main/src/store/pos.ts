@@ -222,7 +222,7 @@ async function refreshAccessToken() {
   }
 }
 
-async function requestJson<T>(path: string, init?: RequestInit, retryOnUnauthorized = true): Promise<T> {
+export async function requestJson<T>(path: string, init?: RequestInit, retryOnUnauthorized = true): Promise<T> {
   const hasFormDataBody = typeof FormData !== "undefined" && init?.body instanceof FormData;
   const { accessToken } = usePOS.getState();
 
