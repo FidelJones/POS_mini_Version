@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, History, FileBarChart2, Settings, HelpCircle, Moon, Sun, Sparkles, LogOut, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, History, FileBarChart2, Settings, HelpCircle, Moon, Sun, Sparkles, LogOut, ShieldCheck, BookOpen } from "lucide-react";
 import { usePOS } from "@/store/pos";
 import { Button } from "@/components/ui/button";
 import { useTutorial } from "@/components/pos/TutorialProvider";
@@ -23,6 +23,7 @@ const navItems = [
   { to: "/products", label: "Products", icon: Package },
   { to: "/reports", label: "Reports", icon: FileBarChart2 },
   { to: "/sales", label: "Sales History", icon: History },
+  { to: "/guide", label: "Guide", icon: BookOpen },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -160,7 +161,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* Mobile bottom nav */}
           <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 glass flex items-center justify-around h-16 px-2">
-            {navItems.slice(0, 4).map((item) => (
+            {navItems.slice(0, 5).map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}

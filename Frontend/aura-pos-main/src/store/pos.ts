@@ -303,6 +303,8 @@ type State = {
   refreshDashboard: () => Promise<void>;
   refreshCategories: () => Promise<void>;
   addCategory: (p: { name: string; imageFile?: File | null }) => Promise<Category | null>;
+  updateCategory: (id: string, p: { name: string; imageFile?: File | null; removeImage?: boolean }) => Promise<Category | null>;
+  deleteCategory: (id: string) => Promise<void>;
   addProduct: (p: { name: string; price: number; categoryId?: string | null; imageFile?: File | null }) => Promise<Product | null>;
   updateProduct: (
     id: string,
@@ -451,6 +453,61 @@ export const usePOS = create<State>()(
           set({ error: message });
           toast({ title: "Add category failed", description: message, variant: "destructive" });
           return null;
+        }
+      },
+      updateCategory: async (id, { name, imageFile, removeImage }) => {
+        try {
+          const imageUrl = imageFile ? await fileToDataUrl(imageFile) : removeImage ? "" : undefined;
+          const payload: Record<string, unknown> = { name };
+          if (imageUrl !== undefined) {
+            payload.imageUrl = imageUrl;
+          }
+
+          const category = normalizeCategory(
+            await requestJson(`/categories/${id}/`, {
+              method: "PATCH",
+              body: JSON.stringify(payload),
+            })
+          );
+
+          const products = (await requestJson<any[]>("/products/")).map(normalizeProduct);
+
+          set((state) => ({
+            categories: state.categories.map((item) => (item.id === id ? category : item)),
+            products,
+            error: null,
+          }));
+          return category;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to update category.";
+          set({ error: message });
+          toast({ title: "Update category failed", description: message, variant: "destructive" });
+          return null;
+        }
+      },
+      deleteCategory: async (id) => {
+        const previousCategories = get().categories;
+        const previousProducts = get().products;
+
+        set((state) => ({
+          categories: state.categories.filter((category) => category.id !== id),
+          products: state.products.map((product) =>
+            product.categoryId === id
+              ? { ...product, categoryId: null, categoryName: null, categoryImageUrl: null }
+              : product
+          ),
+          error: null,
+        }));
+
+        try {
+          await requestJson(`/categories/${id}/`, { method: "DELETE" });
+          const products = (await requestJson<any[]>("/products/")).map(normalizeProduct);
+          set({ products, error: null });
+          void get().refreshDashboard();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to delete category.";
+          set({ categories: previousCategories, products: previousProducts, error: message });
+          toast({ title: "Delete category failed", description: message, variant: "destructive" });
         }
       },
       addProduct: async ({ name, price, categoryId, imageFile }) => {

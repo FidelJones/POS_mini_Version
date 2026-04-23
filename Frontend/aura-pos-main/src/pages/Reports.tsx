@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, FileSpreadsheet, Loader2, Printer } from "lucide-react";
+import { Download, FileSpreadsheet, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/store/pos";
-import { buildReportPrintHtml } from "@/components/reports/ReportPrint";
 import { requestJson } from "@/store/pos";
 
 type SaleItem = {
@@ -277,29 +276,6 @@ export default function Reports() {
     URL.revokeObjectURL(url);
   };
 
-  const printReport = () => {
-    const html = buildReportPrintHtml({
-      businessName: "Jambo POS",
-      fromDate,
-      toDate,
-      summary,
-      productPerformance,
-      sales,
-      generatedAt: new Date().toLocaleString(),
-    });
-
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
-    if (!printWindow) {
-      setError("Could not open print window. Please allow popups for this site.");
-      return;
-    }
-
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.focus();
-  };
-
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-5">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -314,13 +290,6 @@ export default function Reports() {
             className="h-10 px-4 rounded-[10px] border border-border/70 text-sm font-medium flex items-center gap-2 hover:bg-muted/40 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download size={15} /> Download CSV
-          </button>
-          <button
-            onClick={printReport}
-            disabled={sales.length === 0}
-            className="btn-accent h-10 px-4 rounded-[10px] text-sm font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Printer size={15} /> Print report
           </button>
         </div>
       </div>

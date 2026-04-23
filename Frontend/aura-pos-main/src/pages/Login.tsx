@@ -14,15 +14,15 @@ type DashboardSummary = {
 };
 
 const fallbackCards = [
-  { label: "Today's revenue", value: "Loading...", icon: TrendingUp },
-  { label: "Avg. checkout", value: "Loading...", icon: Clock3 },
-  { label: "Active staff", value: "12", icon: Users },
+  { label: "Today's revenue", value: "Live after sign-in", icon: TrendingUp },
+  { label: "Avg. checkout", value: "Backend metrics", icon: Clock3 },
+  { label: "Active staff", value: "Secure access", icon: Users },
 ];
 
 export default function Login() {
   const navigate = useNavigate();
   const { signIn, signUp, isAuthenticated } = usePOS();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
