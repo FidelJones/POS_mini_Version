@@ -42,7 +42,7 @@ function firstNameFromIdentity(identity?: string | null) {
 }
 
 export default function Dashboard() {
-  const { sales, products, dashboard, refreshDashboard, isLoading, signedInAs, addCategory } = usePOS();
+  const { sales, products, dashboard, isLoading, signedInAs, addCategory } = usePOS();
   const [liveNow, setLiveNow] = useState(() => new Date());
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
   const [categoryName, setCategoryName] = useState("");
@@ -54,12 +54,6 @@ export default function Dashboard() {
     const timer = window.setInterval(() => setLiveNow(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    if (!dashboard && !isLoading) {
-      void refreshDashboard();
-    }
-  }, [dashboard, isLoading, refreshDashboard]);
 
   const openCategoryForm = () => {
     setCategoryName("");

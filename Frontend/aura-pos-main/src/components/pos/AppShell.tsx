@@ -56,6 +56,7 @@ function AppSidebar() {
                 <NavLink
                   to={item.to}
                   end={item.end}
+                  {...(item.to === "/dashboard" ? { "data-tour": "dashboard-nav" } : {})}
                   className={({ isActive }) =>
                     `flex items-center gap-3 text-sm font-medium ${
                       isActive ? "bg-primary/10 text-primary" : "text-sidebar-foreground"

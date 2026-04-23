@@ -22,7 +22,7 @@ const fallbackCards = [
 export default function Login() {
   const navigate = useNavigate();
   const { signIn, isAuthenticated } = usePOS();
-  const [email, setEmail] = useState("admin@jambo.pos");
+  const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("jambo-admin");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -36,26 +36,19 @@ export default function Login() {
   }, [isAuthenticated, navigate]);
 
   useEffect(() => {
-    const loadDashboard = async () => {
+    const checkBackend = async () => {
       try {
-        const response = await fetch(`${API_BASE}/dashboard/`);
+        const response = await fetch(`${API_BASE}/health/`);
         if (!response.ok) {
           throw new Error(`Backend unavailable (${response.status})`);
         }
-
-        const payload = (await response.json()) as DashboardSummary;
-        setDashboard({
-          today_total: Number(payload.today_total ?? 0),
-          sales_count: Number(payload.sales_count ?? 0),
-          average_sale: Number(payload.average_sale ?? 0),
-        });
         setBackendError(null);
       } catch (err) {
         setBackendError(err instanceof Error ? err.message : "Could not reach backend.");
       }
     };
 
-    void loadDashboard();
+    void checkBackend();
   }, []);
 
   const readyStats = useMemo(
@@ -84,17 +77,23 @@ export default function Login() {
     [dashboard]
   );
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
 
-    if (!email.toLowerCase().includes("admin") || password.trim().length < 4) {
-      setError("Admin credentials are required to enter the system.");
+    if (!username.trim() || password.trim().length < 4) {
+      setError("Username and password are required.");
       return;
     }
 
     setSubmitting(true);
-    signIn(email);
+    const ok = await signIn(username.trim(), password);
+    setSubmitting(false);
+    if (!ok) {
+      setError("Invalid credentials. Check your username and password.");
+      return;
+    }
+
     navigate("/dashboard", { replace: true });
   };
 
@@ -212,13 +211,13 @@ export default function Login() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-foreground">Email or staff ID</label>
+                  <label className="text-sm font-medium text-foreground">Username</label>
                   <Input
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
+                    value={username}
+                    onChange={(event) => setUsername(event.target.value)}
                     className="mt-2 h-12 rounded-2xl text-base bg-background/80"
-                    placeholder="admin@jambo.pos"
-                    autoComplete="email"
+                    placeholder="admin"
+                    autoComplete="username"
                   />
                 </div>
 

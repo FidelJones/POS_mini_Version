@@ -142,27 +142,107 @@ const emptyDashboard: DashboardSummary = {
   chart_7d: [],
 };
 
-async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+type AuthPayload = {
+  access: string;
+  refresh: string;
+};
+
+type CurrentUserPayload = {
+  username?: string;
+  display_name?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+};
+
+let dashboardRefreshInFlight: Promise<any> | null = null;
+let tokenRefreshInFlight: Promise<string | null> | null = null;
+
+function isAuthPath(path: string) {
+  return path.startsWith("/auth/");
+}
+
+async function extractErrorMessage(response: Response) {
+  const fallback = `Request failed (${response.status})`;
+  const payloadResponse = response.clone();
+  try {
+    const payload = await payloadResponse.json();
+    if (typeof payload === "string") return payload;
+    if (payload?.detail) return String(payload.detail);
+    if (payload?.message) return String(payload.message);
+    if (payload?.error) return String(payload.error);
+    if (Array.isArray(payload?.non_field_errors) && payload.non_field_errors.length > 0) {
+      return String(payload.non_field_errors[0]);
+    }
+    return JSON.stringify(payload);
+  } catch {
+    const text = await response.text();
+    return text || fallback;
+  }
+}
+
+async function refreshAccessToken() {
+  if (tokenRefreshInFlight) return tokenRefreshInFlight;
+
+  const refreshToken = usePOS.getState().refreshToken;
+  if (!refreshToken) return null;
+
+  tokenRefreshInFlight = (async () => {
+    const response = await fetch(`${API_BASE}/auth/refresh/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh: refreshToken }),
+    });
+
+    if (!response.ok) {
+      usePOS.getState().signOut();
+      return null;
+    }
+
+    const payload = (await response.json()) as { access?: string };
+    if (!payload.access) {
+      usePOS.getState().signOut();
+      return null;
+    }
+
+    usePOS.setState({ accessToken: payload.access, isAuthenticated: true });
+    return payload.access;
+  })();
+
+  try {
+    return await tokenRefreshInFlight;
+  } finally {
+    tokenRefreshInFlight = null;
+  }
+}
+
+async function requestJson<T>(path: string, init?: RequestInit, retryOnUnauthorized = true): Promise<T> {
   const hasFormDataBody = typeof FormData !== "undefined" && init?.body instanceof FormData;
+  const { accessToken } = usePOS.getState();
+
+  const headers: Record<string, string> = {
+    ...(hasFormDataBody ? {} : { "Content-Type": "application/json" }),
+    ...((init?.headers as Record<string, string> | undefined) ?? {}),
+  };
+  if (accessToken && !isAuthPath(path)) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: {
-      ...(hasFormDataBody ? {} : { "Content-Type": "application/json" }),
-      ...(init?.headers ?? {}),
-    },
+    headers,
   });
 
-  if (!response.ok) {
-    let message = `Request failed (${response.status})`;
-    const errorResponse = response.clone();
-    try {
-      const payload = await response.json();
-      message = payload.detail || payload.message || JSON.stringify(payload);
-    } catch {
-      const text = await errorResponse.text();
-      if (text) message = text;
+  if (response.status === 401 && !isAuthPath(path) && retryOnUnauthorized) {
+    const refreshedAccessToken = await refreshAccessToken();
+    if (refreshedAccessToken) {
+      return requestJson<T>(path, init, false);
     }
-    throw new Error(message);
+    throw new Error("Session expired. Please sign in again.");
+  }
+
+  if (!response.ok) {
+    throw new Error(await extractErrorMessage(response));
   }
 
   if (response.status === 204) return undefined as T;
@@ -179,6 +259,8 @@ type State = {
   tutorialDone: boolean;
   isAuthenticated: boolean;
   signedInAs: string | null;
+  accessToken: string | null;
+  refreshToken: string | null;
   nextCustomerSerial: number;
   isLoading: boolean;
   error: string | null;
@@ -203,7 +285,7 @@ type State = {
   recordSale: () => Promise<Sale | null>;
   setTheme: (t: "light" | "dark") => void;
   setTutorialDone: (v: boolean) => void;
-  signIn: (email: string) => void;
+  signIn: (username: string, password: string) => Promise<boolean>;
   signOut: () => void;
   advanceCustomerSerial: () => void;
 };
@@ -228,6 +310,10 @@ async function loadCategories() {
   return requestJson<any[]>("/categories/");
 }
 
+async function loadCurrentUser() {
+  return requestJson<CurrentUserPayload>("/auth/me/");
+}
+
 export const usePOS = create<State>()(
   persist(
     (set, get) => ({
@@ -240,12 +326,19 @@ export const usePOS = create<State>()(
       tutorialDone: false,
       isAuthenticated: false,
       signedInAs: null,
+      accessToken: null,
+      refreshToken: null,
       nextCustomerSerial: 1,
       isLoading: false,
       error: null,
       cartCustomerName: "",
       cartNotes: "",
       initialize: async () => {
+        if (!get().accessToken) {
+          get().signOut();
+          return;
+        }
+
         set({ isLoading: true, error: null });
         try {
           const [products, categories, sales, dashboard] = await Promise.all([
@@ -274,12 +367,21 @@ export const usePOS = create<State>()(
         }
       },
       refreshDashboard: async () => {
+        if (dashboardRefreshInFlight) {
+          const dashboard = await dashboardRefreshInFlight;
+          set({ dashboard: normalizeDashboard(dashboard) });
+          return;
+        }
+
+        dashboardRefreshInFlight = requestJson<any>("/dashboard/");
         try {
-          const dashboard = await requestJson<any>("/dashboard/");
+          const dashboard = await dashboardRefreshInFlight;
           set({ dashboard: normalizeDashboard(dashboard) });
         } catch (error) {
           const message = error instanceof Error ? error.message : "Failed to refresh dashboard.";
           set({ error: message, dashboard: emptyDashboard });
+        } finally {
+          dashboardRefreshInFlight = null;
         }
       },
       refreshCategories: async () => {
@@ -458,16 +560,59 @@ export const usePOS = create<State>()(
         }
       },
       setTutorialDone: (v) => set({ tutorialDone: v }),
-      signIn: (email) =>
-        set({
-          isAuthenticated: true,
-          signedInAs: email.trim() || "Admin",
-          error: null,
-        }),
+      signIn: async (username, password) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await fetch(`${API_BASE}/auth/token/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: username.trim(), password }),
+          });
+
+          if (!response.ok) {
+            const message = await extractErrorMessage(response);
+            set({ error: message, isAuthenticated: false });
+            return false;
+          }
+
+          const payload = (await response.json()) as AuthPayload;
+          set({
+            accessToken: payload.access,
+            refreshToken: payload.refresh,
+            isAuthenticated: true,
+            signedInAs: username.trim(),
+            error: null,
+          });
+
+          try {
+            const currentUser = await loadCurrentUser();
+            const displayName =
+              currentUser.display_name ||
+              `${currentUser.first_name ?? ""} ${currentUser.last_name ?? ""}`.trim() ||
+              currentUser.username ||
+              currentUser.email ||
+              username.trim();
+            set({ signedInAs: displayName });
+          } catch {
+            // Keep the entered username if /auth/me is temporarily unavailable.
+          }
+
+          return true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to sign in.";
+          set({ error: message, isAuthenticated: false });
+          return false;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
       signOut: () =>
         set({
           isAuthenticated: false,
           signedInAs: null,
+          accessToken: null,
+          refreshToken: null,
+          dashboard: null,
           cart: [],
           cartCustomerName: "",
           cartNotes: "",
@@ -485,6 +630,8 @@ export const usePOS = create<State>()(
         tutorialDone: state.tutorialDone,
         isAuthenticated: state.isAuthenticated,
         signedInAs: state.signedInAs,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
         nextCustomerSerial: state.nextCustomerSerial,
       }),
       onRehydrateStorage: () => (state) => {

@@ -13,12 +13,12 @@ type Step = {
 };
 
 const steps: Step[] = [
-  { selector: '[data-tour="grid"]', title: "Your products", body: "These are your products. Tap any card to add it to the current sale.", route: "/" },
-  { selector: '[data-tour="search"]', title: "Find anything fast", body: "Search any product by name. Results filter as you type.", route: "/" },
-  { selector: '[data-tour="cart"]', title: "Live cart", body: "Your cart lives here. Every item you tap appears instantly.", route: "/" },
-  { selector: '[data-tour="qty"]', title: "Adjust quantities", body: "Use + and − to change quantities. The total updates the moment you tap.", route: "/" },
-  { selector: '[data-tour="record"]', title: "Record the sale", body: "When you're ready, press this to save the sale to the system.", route: "/" },
-  { selector: '[data-tour="dashboard-nav"]', title: "Your dashboard", body: "After every sale, your dashboard updates automatically. Check daily totals here.", route: "/" },
+  { selector: '[data-tour="grid"]', title: "Your products", body: "These are your products. Tap any card to add it to the current sale.", route: "/pos" },
+  { selector: '[data-tour="search"]', title: "Find anything fast", body: "Search any product by name. Results filter as you type.", route: "/pos" },
+  { selector: '[data-tour="cart"]', title: "Live cart", body: "Your cart lives here. Every item you tap appears instantly.", route: "/pos" },
+  { selector: '[data-tour="qty"]', title: "Adjust quantities", body: "Use + and − to change quantities. The total updates the moment you tap.", route: "/pos" },
+  { selector: '[data-tour="record"]', title: "Record the sale", body: "When you're ready, press this to save the sale to the system.", route: "/pos" },
+  { selector: '[data-tour="dashboard-nav"]', title: "Your dashboard", body: "After every sale, your dashboard updates automatically. Check daily totals here.", route: "/dashboard" },
 ];
 
 type Ctx = { start: () => void };
