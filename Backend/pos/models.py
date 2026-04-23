@@ -9,6 +9,7 @@ class Product(models.Model):
 	name = models.CharField(max_length=200)
 	price = models.DecimalField(max_digits=10, decimal_places=2)
 	image = models.ImageField(upload_to='products/', blank=True, null=True)
+	image_url = models.TextField(blank=True, default='')
 	created_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:
@@ -22,6 +23,7 @@ class Category(models.Model):
 	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 	name = models.CharField(max_length=120, unique=True)
 	image = models.ImageField(upload_to='categories/', blank=True, null=True)
+	image_url = models.TextField(blank=True, default='')
 	created_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:

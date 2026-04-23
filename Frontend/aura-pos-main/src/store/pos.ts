@@ -76,6 +76,20 @@ const STORE_VERSION = "pos-store-v2";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+const fileToDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("Could not read image file."));
+    };
+    reader.onerror = () => reject(new Error("Could not read image file."));
+    reader.readAsDataURL(file);
+  });
+
 const toNumber = (value: unknown) => {
   if (typeof value === "number") return value;
   const parsed = Number(value);
@@ -415,16 +429,12 @@ export const usePOS = create<State>()(
       },
       addCategory: async ({ name, imageFile }) => {
         try {
-          const body = new FormData();
-          body.append("name", name);
-          if (imageFile) {
-            body.append("image", imageFile);
-          }
+          const imageUrl = imageFile ? await fileToDataUrl(imageFile) : "";
 
           const category = normalizeCategory(
             await requestJson("/categories/", {
               method: "POST",
-              body,
+              body: JSON.stringify({ name, imageUrl }),
             })
           );
 
@@ -445,20 +455,17 @@ export const usePOS = create<State>()(
       },
       addProduct: async ({ name, price, categoryId, imageFile }) => {
         try {
-          const body = new FormData();
-          body.append("name", name);
-          body.append("price", String(price));
-          if (categoryId) {
-            body.append("categoryId", categoryId);
-          }
-          if (imageFile) {
-            body.append("image", imageFile);
-          }
+          const imageUrl = imageFile ? await fileToDataUrl(imageFile) : "";
 
           const product = normalizeProduct(
             await requestJson("/products/", {
               method: "POST",
-              body,
+              body: JSON.stringify({
+                name,
+                price,
+                categoryId: categoryId || null,
+                imageUrl,
+              }),
             })
           );
 
@@ -481,22 +488,20 @@ export const usePOS = create<State>()(
       },
       updateProduct: async (id, { name, price, categoryId, imageFile, removeImage }) => {
         try {
-          const body = new FormData();
-          body.append("name", name);
-          body.append("price", String(price));
-          if (categoryId) {
-            body.append("categoryId", categoryId);
-          }
-          if (imageFile) {
-            body.append("image", imageFile);
-          } else if (removeImage) {
-            body.append("image", "");
+          const imageUrl = imageFile ? await fileToDataUrl(imageFile) : removeImage ? "" : undefined;
+          const payload: Record<string, unknown> = {
+            name,
+            price,
+            categoryId: categoryId || null,
+          };
+          if (imageUrl !== undefined) {
+            payload.imageUrl = imageUrl;
           }
 
           const product = normalizeProduct(
             await requestJson(`/products/${id}/`, {
               method: "PATCH",
-              body,
+              body: JSON.stringify(payload),
             })
           );
 

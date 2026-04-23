@@ -8,7 +8,7 @@ from .models import Category, Product, Sale, SaleItem
 
 class CategorySerializer(serializers.ModelSerializer):
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
-    imageUrl = serializers.SerializerMethodField()
+    imageUrl = serializers.CharField(source='image_url', required=False, allow_blank=True, allow_null=True)
     productCount = serializers.SerializerMethodField()
 
     class Meta:
@@ -18,13 +18,18 @@ class CategorySerializer(serializers.ModelSerializer):
             'image': {'required': False, 'allow_null': True},
         }
 
-    def get_imageUrl(self, obj):
-        if not obj.image:
-            return None
-        request = self.context.get('request')
-        if request is not None:
-            return request.build_absolute_uri(obj.image.url)
-        return obj.image.url
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if data.get('imageUrl'):
+            return data
+
+        # Backward compatibility for old rows that only used ImageField storage.
+        if instance.image:
+            request = self.context.get('request')
+            data['imageUrl'] = request.build_absolute_uri(instance.image.url) if request is not None else instance.image.url
+        else:
+            data['imageUrl'] = None
+        return data
 
     def get_productCount(self, obj):
         return obj.products.count()
@@ -32,7 +37,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
-    imageUrl = serializers.SerializerMethodField()
+    imageUrl = serializers.CharField(source='image_url', required=False, allow_blank=True, allow_null=True)
     categoryId = serializers.PrimaryKeyRelatedField(source='category', queryset=Category.objects.all(), required=False, allow_null=True)
     categoryName = serializers.SerializerMethodField()
     categoryImageUrl = serializers.SerializerMethodField()
@@ -44,19 +49,28 @@ class ProductSerializer(serializers.ModelSerializer):
             'image': {'required': False, 'allow_null': True},
         }
 
-    def get_imageUrl(self, obj):
-        if not obj.image:
-            return None
-        request = self.context.get('request')
-        if request is not None:
-            return request.build_absolute_uri(obj.image.url)
-        return obj.image.url
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if data.get('imageUrl'):
+            return data
+
+        # Backward compatibility for old rows that only used ImageField storage.
+        if instance.image:
+            request = self.context.get('request')
+            data['imageUrl'] = request.build_absolute_uri(instance.image.url) if request is not None else instance.image.url
+        else:
+            data['imageUrl'] = None
+        return data
 
     def get_categoryName(self, obj):
         return obj.category.name if obj.category else None
 
     def get_categoryImageUrl(self, obj):
-        if not obj.category or not obj.category.image:
+        if not obj.category:
+            return None
+        if obj.category.image_url:
+            return obj.category.image_url
+        if not obj.category.image:
             return None
         request = self.context.get('request')
         if request is not None:
