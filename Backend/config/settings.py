@@ -41,6 +41,11 @@ ALLOWED_HOSTS = _csv_env('ALLOWED_HOSTS', allowed_hosts_default)
 
 frontend_origin = os.getenv('FRONTEND_ORIGIN', 'https://jamboposminiversion.netlify.app')
 
+cloudinary_cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME', '').strip()
+cloudinary_api_key = os.getenv('CLOUDINARY_API_KEY', '').strip()
+cloudinary_api_secret = os.getenv('CLOUDINARY_API_SECRET', '').strip()
+use_cloudinary = bool(cloudinary_cloud_name and cloudinary_api_key and cloudinary_api_secret)
+
 
 # Application definition
 
@@ -55,6 +60,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'pos',
 ]
+
+if use_cloudinary:
+    # Cloudinary apps are only enabled when credentials are present.
+    INSTALLED_APPS.insert(INSTALLED_APPS.index('django.contrib.staticfiles'), 'cloudinary_storage')
+    INSTALLED_APPS.append('cloudinary')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -140,6 +150,23 @@ USE_TZ = True
 STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+if use_cloudinary:
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': cloudinary_cloud_name,
+        'API_KEY': cloudinary_api_key,
+        'API_SECRET': cloudinary_api_secret,
+        'SECURE': True,
+    }
+
+    STORAGES = {
+        'default': {
+            'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }
 
 CORS_ALLOWED_ORIGINS = _csv_env(
     'CORS_ALLOWED_ORIGINS',

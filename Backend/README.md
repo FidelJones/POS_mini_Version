@@ -33,8 +33,13 @@ For the Render backend, set these environment variables:
 - `ADMIN_USERNAME=admin` (optional bootstrap)
 - `ADMIN_PASSWORD=<your-strong-password>` (optional bootstrap)
 - `ADMIN_EMAIL=admin@example.com` (optional bootstrap)
+- `CLOUDINARY_CLOUD_NAME=<cloud-name>` (for persistent media)
+- `CLOUDINARY_API_KEY=<api-key>` (for persistent media)
+- `CLOUDINARY_API_SECRET=<api-secret>` (for persistent media)
 
 The backend already defaults to trusting the Netlify origin for CORS and CSRF, but the explicit variable keeps the deployment configuration clear.
+
+If Cloudinary variables are present, uploads for product/category images use Cloudinary object storage automatically. If they are missing, Django falls back to local `media/` storage.
 
 For Render, use these commands:
 
