@@ -38,6 +38,8 @@ if render_host:
 
 ALLOWED_HOSTS = _csv_env('ALLOWED_HOSTS', allowed_hosts_default)
 
+frontend_origin = os.getenv('FRONTEND_ORIGIN', 'https://jamboposminiversion.netlify.app')
+
 
 # Application definition
 
@@ -136,10 +138,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 CORS_ALLOWED_ORIGINS = _csv_env(
     'CORS_ALLOWED_ORIGINS',
-    'http://localhost:5173,http://127.0.0.1:5173',
+    f'http://localhost:5173,http://127.0.0.1:5173,{frontend_origin}',
 )
 
-CSRF_TRUSTED_ORIGINS = _csv_env('CSRF_TRUSTED_ORIGINS')
+CSRF_TRUSTED_ORIGINS = _csv_env('CSRF_TRUSTED_ORIGINS', frontend_origin)
 if render_host:
     CSRF_TRUSTED_ORIGINS.append(f'https://{render_host}')
 

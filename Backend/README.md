@@ -22,6 +22,16 @@ API base URL:
 
 `http://127.0.0.1:8000/api/`
 
+## Production
+
+For the Render backend, set these environment variables:
+
+- `SECRET_KEY`
+- `DEBUG=False`
+- `FRONTEND_ORIGIN=https://jamboposminiversion.netlify.app`
+
+The backend already defaults to trusting the Netlify origin for CORS and CSRF, but the explicit variable keeps the deployment configuration clear.
+
 ## Endpoints
 
 ### Products
