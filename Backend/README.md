@@ -30,6 +30,9 @@ For the Render backend, set these environment variables:
 - `SECRET_KEY`
 - `DEBUG=False`
 - `FRONTEND_ORIGIN=https://jamboposminiversion.netlify.app`
+- `ADMIN_USERNAME=admin` (optional bootstrap)
+- `ADMIN_PASSWORD=<your-strong-password>` (optional bootstrap)
+- `ADMIN_EMAIL=admin@example.com` (optional bootstrap)
 
 The backend already defaults to trusting the Netlify origin for CORS and CSRF, but the explicit variable keeps the deployment configuration clear.
 
@@ -39,6 +42,8 @@ For Render, use these commands:
 - Start Command: `bash render-start.sh`
 
 The build script installs dependencies and runs `python manage.py migrate --noinput`, which is required because `db.sqlite3` is not committed to the repository.
+
+If `ADMIN_USERNAME` and `ADMIN_PASSWORD` are provided, the build script also creates or updates a superuser automatically. This is useful on free plans where Render Shell access is not available.
 
 ## Endpoints
 
