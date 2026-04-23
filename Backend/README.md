@@ -32,6 +32,13 @@ For the Render backend, set these environment variables:
 
 The backend already defaults to trusting the Netlify origin for CORS and CSRF, but the explicit variable keeps the deployment configuration clear.
 
+For Render, use these commands:
+
+- Build Command: `bash render-build.sh`
+- Start Command: `bash render-start.sh`
+
+The build script installs dependencies and runs `python manage.py migrate --noinput`, which is required because `db.sqlite3` is not committed to the repository.
+
 ## Endpoints
 
 ### Products

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, FileSpreadsheet, Loader2, Printer } from "lucide-react";
 import { formatCurrency } from "@/store/pos";
 import { buildReportPrintHtml } from "@/components/reports/ReportPrint";
+import { API_BASE } from "@/store/pos";
 
 type SaleItem = {
   productId: string;
@@ -126,7 +127,7 @@ export default function Reports() {
         end_date: toDate,
       });
 
-      const response = await fetch(`/api/sales/?${query.toString()}`);
+      const response = await fetch(`${API_BASE}/sales/?${query.toString()}`);
       if (!response.ok) {
         throw new Error(`Failed to load report (${response.status})`);
       }
@@ -146,7 +147,7 @@ export default function Reports() {
     setHeatmapLoading(true);
     setHeatmapError(null);
     try {
-      const response = await fetch(`/api/reports/heatmap/?date=${encodeURIComponent(date)}`);
+      const response = await fetch(`${API_BASE}/reports/heatmap/?date=${encodeURIComponent(date)}`);
       if (!response.ok) {
         throw new Error(`Failed to load heatmap (${response.status})`);
       }

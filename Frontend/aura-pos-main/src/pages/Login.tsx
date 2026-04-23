@@ -2,14 +2,20 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, BarChart3, Clock3, LockKeyhole, ShieldCheck, Sparkles, TrendingUp, Users } from "lucide-react";
-import { usePOS } from "@/store/pos";
+import { API_BASE, formatCurrency, usePOS } from "@/store/pos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
-const floatingCards = [
-  { label: "Today's revenue", value: "UGX 847,000", icon: TrendingUp },
-  { label: "Avg. checkout", value: "6.2s", icon: Clock3 },
+type DashboardSummary = {
+  today_total?: number;
+  sales_count?: number;
+  average_sale?: number;
+};
+
+const fallbackCards = [
+  { label: "Today's revenue", value: "Loading...", icon: TrendingUp },
+  { label: "Avg. checkout", value: "Loading...", icon: Clock3 },
   { label: "Active staff", value: "12", icon: Users },
 ];
 
@@ -20,12 +26,37 @@ export default function Login() {
   const [password, setPassword] = useState("jambo-admin");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
+  const [backendError, setBackendError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/dashboard/`);
+        if (!response.ok) {
+          throw new Error(`Backend unavailable (${response.status})`);
+        }
+
+        const payload = (await response.json()) as DashboardSummary;
+        setDashboard({
+          today_total: Number(payload.today_total ?? 0),
+          sales_count: Number(payload.sales_count ?? 0),
+          average_sale: Number(payload.average_sale ?? 0),
+        });
+        setBackendError(null);
+      } catch (err) {
+        setBackendError(err instanceof Error ? err.message : "Could not reach backend.");
+      }
+    };
+
+    void loadDashboard();
+  }, []);
 
   const readyStats = useMemo(
     () => [
@@ -36,8 +67,26 @@ export default function Login() {
     []
   );
 
+  const floatingCards = useMemo(
+    () => [
+      { label: "Today's revenue", value: dashboard ? formatCurrency(dashboard.today_total ?? 0) : fallbackCards[0].value, icon: TrendingUp },
+      {
+        label: "Avg. checkout",
+        value: dashboard ? formatCurrency(dashboard.average_sale ?? 0) : fallbackCards[1].value,
+        icon: Clock3,
+      },
+      {
+        label: "Sales count",
+        value: dashboard ? String(dashboard.sales_count ?? 0) : fallbackCards[2].value,
+        icon: Users,
+      },
+    ],
+    [dashboard]
+  );
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    setError(null);
 
     if (!email.toLowerCase().includes("admin") || password.trim().length < 4) {
       setError("Admin credentials are required to enter the system.");
@@ -133,6 +182,13 @@ export default function Login() {
             <div className="rounded-[32px] border border-border/70 bg-card/90 backdrop-blur-2xl shadow-[0_24px_80px_hsl(230_25%_10%/0.12)] p-6 sm:p-8 lg:p-10">
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-sm text-primary mb-6">
                 <LockKeyhole size={14} /> Secure, encrypted session
+              </div>
+
+              <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-muted/35 px-4 py-3 text-xs sm:text-sm">
+                <span className="font-medium text-muted-foreground">Backend</span>
+                <span className={backendError ? "text-destructive" : "text-emerald-600"}>
+                  {backendError ? backendError : `Connected to ${API_BASE}`}
+                </span>
               </div>
 
               <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">Welcome back</h2>

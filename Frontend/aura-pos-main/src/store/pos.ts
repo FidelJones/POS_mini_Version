@@ -66,7 +66,12 @@ const defaultProducts: Product[] = [
   { id: "p8", name: "Cold Brew", price: 4.2, createdAt: new Date().toISOString() },
 ];
 
-const API_BASE = "/api";
+const configuredApiBase = import.meta.env.VITE_API_BASE_URL?.trim();
+export const API_BASE = configuredApiBase
+  ? configuredApiBase.replace(/\/$/, "")
+  : import.meta.env.DEV
+    ? "/api"
+    : "https://pos-mini-version.onrender.com/api";
 const STORE_VERSION = "pos-store-v2";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -142,11 +147,12 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
+    const errorResponse = response.clone();
     try {
       const payload = await response.json();
       message = payload.detail || payload.message || JSON.stringify(payload);
     } catch {
-      const text = await response.text();
+      const text = await errorResponse.text();
       if (text) message = text;
     }
     throw new Error(message);
