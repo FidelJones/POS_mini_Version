@@ -6,10 +6,10 @@ Calm, fast point of sale for modern retail and hospitality.
 
 Set `VITE_API_BASE_URL` in Netlify to point at the Render backend:
 
-`https://pos-mini-version.onrender.com/api`
+`https://pos-mini-version-1.onrender.com/api`
 
 Example local env file:
 
 ```bash
-VITE_API_BASE_URL=https://pos-mini-version.onrender.com/api
+VITE_API_BASE_URL=https://pos-mini-version-1.onrender.com/api
 ```

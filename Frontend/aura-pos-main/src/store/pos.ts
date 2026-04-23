@@ -71,7 +71,7 @@ export const API_BASE = configuredApiBase
   ? configuredApiBase.replace(/\/$/, "")
   : import.meta.env.DEV
     ? "/api"
-    : "https://pos-mini-version.onrender.com/api";
+    : "https://pos-mini-version-1.onrender.com/api";
 const STORE_VERSION = "pos-store-v2";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -134,6 +134,13 @@ const normalizeDashboard = (raw: any): DashboardSummary => ({
   product_count: raw.product_count != null ? toNumber(raw.product_count) : undefined,
   top_name: raw.top_name ?? raw.topName ?? undefined,
 });
+
+const emptyDashboard: DashboardSummary = {
+  today_total: 0,
+  sales_count: 0,
+  average_sale: 0,
+  chart_7d: [],
+};
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const hasFormDataBody = typeof FormData !== "undefined" && init?.body instanceof FormData;
@@ -256,7 +263,7 @@ export const usePOS = create<State>()(
           });
         } catch (error) {
           const message = error instanceof Error ? error.message : "Failed to load backend data.";
-          set({ error: message });
+          set({ error: message, dashboard: emptyDashboard });
           toast({
             title: "Could not load data",
             description: message,
@@ -272,7 +279,7 @@ export const usePOS = create<State>()(
           set({ dashboard: normalizeDashboard(dashboard) });
         } catch (error) {
           const message = error instanceof Error ? error.message : "Failed to refresh dashboard.";
-          set({ error: message });
+          set({ error: message, dashboard: emptyDashboard });
         }
       },
       refreshCategories: async () => {
