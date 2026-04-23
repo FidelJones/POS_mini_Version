@@ -155,6 +155,12 @@ type CurrentUserPayload = {
   email?: string;
 };
 
+type RegisterPayload = {
+  access: string;
+  refresh: string;
+  user?: CurrentUserPayload;
+};
+
 let dashboardRefreshInFlight: Promise<any> | null = null;
 let tokenRefreshInFlight: Promise<string | null> | null = null;
 
@@ -286,6 +292,7 @@ type State = {
   setTheme: (t: "light" | "dark") => void;
   setTutorialDone: (v: boolean) => void;
   signIn: (username: string, password: string) => Promise<boolean>;
+  signUp: (payload: { username: string; password: string; email?: string; firstName?: string; lastName?: string }) => Promise<boolean>;
   signOut: () => void;
   advanceCustomerSerial: () => void;
 };
@@ -600,6 +607,51 @@ export const usePOS = create<State>()(
           return true;
         } catch (error) {
           const message = error instanceof Error ? error.message : "Failed to sign in.";
+          set({ error: message, isAuthenticated: false });
+          return false;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+      signUp: async ({ username, password, email, firstName, lastName }) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await fetch(`${API_BASE}/auth/register/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: username.trim(),
+              password,
+              email: (email ?? "").trim(),
+              first_name: (firstName ?? "").trim(),
+              last_name: (lastName ?? "").trim(),
+            }),
+          });
+
+          if (!response.ok) {
+            const message = await extractErrorMessage(response);
+            set({ error: message, isAuthenticated: false });
+            return false;
+          }
+
+          const payload = (await response.json()) as RegisterPayload;
+          const displayName =
+            payload.user?.display_name ||
+            `${payload.user?.first_name ?? ""} ${payload.user?.last_name ?? ""}`.trim() ||
+            payload.user?.username ||
+            payload.user?.email ||
+            username.trim();
+
+          set({
+            accessToken: payload.access,
+            refreshToken: payload.refresh,
+            isAuthenticated: true,
+            signedInAs: displayName,
+            error: null,
+          });
+          return true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to sign up.";
           set({ error: message, isAuthenticated: false });
           return false;
         } finally {

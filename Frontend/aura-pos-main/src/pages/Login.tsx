@@ -21,9 +21,14 @@ const fallbackCards = [
 
 export default function Login() {
   const navigate = useNavigate();
-  const { signIn, isAuthenticated } = usePOS();
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("jambo-admin");
+  const { signIn, signUp, isAuthenticated } = usePOS();
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
@@ -86,11 +91,25 @@ export default function Login() {
       return;
     }
 
+    if (mode === "signup") {
+      if (password !== confirmPassword) {
+        setError("Passwords do not match.");
+        return;
+      }
+      if (password.trim().length < 6) {
+        setError("Password must be at least 6 characters.");
+        return;
+      }
+    }
+
     setSubmitting(true);
-    const ok = await signIn(username.trim(), password);
+    const ok =
+      mode === "signin"
+        ? await signIn(username.trim(), password)
+        : await signUp({ username: username.trim(), password, email: email.trim(), firstName: firstName.trim(), lastName: lastName.trim() });
     setSubmitting(false);
     if (!ok) {
-      setError("Invalid credentials. Check your username and password.");
+      setError(mode === "signin" ? "Invalid credentials. Check your username and password." : "Could not create account. Try a different username.");
       return;
     }
 
@@ -190,25 +209,65 @@ export default function Login() {
                 </span>
               </div>
 
-              <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">Welcome back</h2>
+              <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">{mode === "signin" ? "Welcome back" : "Create account"}</h2>
               <p className="mt-3 text-sm sm:text-base leading-7 text-muted-foreground max-w-lg">
-                Sign in as admin to reach the dashboard, monitor sales, and manage the system with full control.
+                {mode === "signin"
+                  ? "Sign in to reach the dashboard, monitor sales, and manage the system with full control."
+                  : "Sign up with your details and start managing your POS immediately."}
               </p>
 
               <form onSubmit={handleSubmit} className="mt-8 space-y-5">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <button
                     type="button"
-                    className="rounded-2xl border-2 border-primary/50 bg-primary/10 px-4 py-3 text-left shadow-[0_0_0_1px_hsl(var(--primary)/0.1)]"
+                    onClick={() => setMode("signin")}
+                    className={`rounded-2xl border-2 px-4 py-3 text-left ${
+                      mode === "signin"
+                        ? "border-primary/50 bg-primary/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.1)]"
+                        : "border-border/70 bg-muted/40"
+                    }`}
                   >
                     <div className="text-sm font-semibold">Admin</div>
-                    <div className="text-xs text-muted-foreground mt-1">Recommended for full system access</div>
+                    <div className="text-xs text-muted-foreground mt-1">Sign in with existing account</div>
                   </button>
-                  <div className="rounded-2xl border border-border/70 bg-muted/40 px-4 py-3 text-left opacity-80">
-                    <div className="text-sm font-semibold text-muted-foreground">Manager</div>
-                    <div className="text-xs text-muted-foreground mt-1">Restricted in this build</div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMode("signup")}
+                    className={`rounded-2xl border-2 px-4 py-3 text-left ${
+                      mode === "signup"
+                        ? "border-primary/50 bg-primary/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.1)]"
+                        : "border-border/70 bg-muted/40"
+                    }`}
+                  >
+                    <div className="text-sm font-semibold">Sign up</div>
+                    <div className="text-xs text-muted-foreground mt-1">Create a new account</div>
+                  </button>
                 </div>
+
+                {mode === "signup" && (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="text-sm font-medium text-foreground">First name</label>
+                      <Input
+                        value={firstName}
+                        onChange={(event) => setFirstName(event.target.value)}
+                        className="mt-2 h-12 rounded-2xl text-base bg-background/80"
+                        placeholder="First name"
+                        autoComplete="given-name"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground">Last name</label>
+                      <Input
+                        value={lastName}
+                        onChange={(event) => setLastName(event.target.value)}
+                        className="mt-2 h-12 rounded-2xl text-base bg-background/80"
+                        placeholder="Last name"
+                        autoComplete="family-name"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="text-sm font-medium text-foreground">Username</label>
@@ -221,6 +280,19 @@ export default function Login() {
                   />
                 </div>
 
+                {mode === "signup" && (
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Email</label>
+                    <Input
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      className="mt-2 h-12 rounded-2xl text-base bg-background/80"
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                    />
+                  </div>
+                )}
+
                 <div>
                   <div className="flex items-center justify-between gap-3">
                     <label className="text-sm font-medium text-foreground">Password</label>
@@ -231,9 +303,22 @@ export default function Login() {
                     onChange={(event) => setPassword(event.target.value)}
                     className="mt-2 h-12 rounded-2xl text-base bg-background/80"
                     type="password"
-                    autoComplete="current-password"
+                    autoComplete={mode === "signin" ? "current-password" : "new-password"}
                   />
                 </div>
+
+                {mode === "signup" && (
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Confirm password</label>
+                    <Input
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      className="mt-2 h-12 rounded-2xl text-base bg-background/80"
+                      type="password"
+                      autoComplete="new-password"
+                    />
+                  </div>
+                )}
 
                 {error && (
                   <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -246,7 +331,7 @@ export default function Login() {
                   disabled={submitting}
                   className="btn-accent h-14 w-full rounded-2xl text-base gap-2 shadow-[0_18px_45px_hsl(var(--primary)/0.3)]"
                 >
-                  Enter Jambo Dashboard
+                  {mode === "signin" ? "Enter Jambo Dashboard" : "Create account and continue"}
                   <ArrowRight size={18} />
                 </Button>
               </form>

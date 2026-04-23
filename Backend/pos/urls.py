@@ -9,6 +9,7 @@ from .views import (
     HealthAPIView,
     ProductDetailAPIView,
     ProductListCreateAPIView,
+    RegisterAPIView,
     ReportsHeatmapAPIView,
     SaleListCreateAPIView,
 )
@@ -17,6 +18,7 @@ urlpatterns = [
     path('health/', HealthAPIView.as_view(), name='health'),
     path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/register/', RegisterAPIView.as_view(), name='auth_register'),
     path('auth/me/', CurrentUserAPIView.as_view(), name='auth_me'),
     path('categories/', CategoryListCreateAPIView.as_view(), name='categories-list-create'),
     path('categories/<uuid:pk>/', CategoryDetailAPIView.as_view(), name='categories-detail'),
