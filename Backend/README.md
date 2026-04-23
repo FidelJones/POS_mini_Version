@@ -13,8 +13,9 @@ Backend API for the POS frontend in this repository.
 From the `Backend` folder:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install django djangorestframework django-cors-headers
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe manage.py migrate
+.\.venv\Scripts\python.exe manage.py createsuperuser
 .\.venv\Scripts\python.exe manage.py runserver
 ```
 
@@ -40,6 +41,22 @@ For Render, use these commands:
 The build script installs dependencies and runs `python manage.py migrate --noinput`, which is required because `db.sqlite3` is not committed to the repository.
 
 ## Endpoints
+
+### Auth
+
+- `GET /api/health/` public backend health check
+- `POST /api/auth/token/` obtain access and refresh tokens
+- `POST /api/auth/refresh/` refresh access token
+- `GET /api/auth/me/` get signed-in user profile
+
+Token request body:
+
+```json
+{
+	"username": "admin",
+	"password": "your-password"
+}
+```
 
 ### Products
 

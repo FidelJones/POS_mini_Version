@@ -5,6 +5,7 @@ from django.db.models.functions import ExtractHour
 from django.db.models.functions import TruncDate
 from django.utils.dateparse import parse_date
 from django.utils import timezone
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -142,3 +143,28 @@ class ReportsHeatmapAPIView(APIView):
 			)
 
 		return Response({'date': target_date.isoformat(), 'hours': hours})
+
+
+class CurrentUserAPIView(APIView):
+	permission_classes = [IsAuthenticated]
+
+	def get(self, request):
+		user = request.user
+		full_name = f"{user.first_name} {user.last_name}".strip()
+		return Response(
+			{
+				'id': user.id,
+				'username': user.username,
+				'email': user.email,
+				'first_name': user.first_name,
+				'last_name': user.last_name,
+				'display_name': full_name or user.username,
+			}
+		)
+
+
+class HealthAPIView(APIView):
+	permission_classes = [AllowAny]
+
+	def get(self, request):
+		return Response({'status': 'ok'})
