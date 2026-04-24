@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, BarChart3, Clock3, LockKeyhole, ShieldCheck, Sparkles, TrendingUp, Users } from "lucide-react";
-import { API_BASE, formatCurrency, usePOS } from "@/store/pos";
+import { formatCurrency, usePOS } from "@/store/pos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -32,29 +32,12 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
-  const [backendError, setBackendError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate]);
-
-  useEffect(() => {
-    const checkBackend = async () => {
-      try {
-        const response = await fetch(`${API_BASE}/health/`);
-        if (!response.ok) {
-          throw new Error(`Backend unavailable (${response.status})`);
-        }
-        setBackendError(null);
-      } catch (err) {
-        setBackendError(err instanceof Error ? err.message : "Could not reach backend.");
-      }
-    };
-
-    void checkBackend();
-  }, []);
 
   const readyStats = useMemo(
     () => [
@@ -200,13 +183,6 @@ export default function Login() {
             <div className="rounded-[32px] border border-border/70 bg-card/90 backdrop-blur-2xl shadow-[0_24px_80px_hsl(230_25%_10%/0.12)] p-6 sm:p-8 lg:p-10">
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-sm text-primary mb-6">
                 <LockKeyhole size={14} /> Secure, encrypted session
-              </div>
-
-              <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-muted/35 px-4 py-3 text-xs sm:text-sm">
-                <span className="font-medium text-muted-foreground">Backend</span>
-                <span className={backendError ? "text-destructive" : "text-emerald-600"}>
-                  {backendError ? backendError : `Connected to ${API_BASE}`}
-                </span>
               </div>
 
               <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">{mode === "signin" ? "Welcome back" : "Create account"}</h2>
